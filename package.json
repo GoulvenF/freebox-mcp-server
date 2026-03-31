@@ -1,0 +1,35 @@
+{
+  "name": "freebox-mcp-server",
+  "version": "1.0.0",
+  "description": "Serveur MCP pour l'API Freebox OS - Contrôlez votre Freebox Server via Model Context Protocol. Créé par loopion.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "freebox-mcp-server": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch"
+  },
+  "keywords": ["freebox", "mcp", "server", "api", "home-automation"],
+  "license": "MIT",
+  "author": "loopion",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopion/freebox-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/loopion/freebox-mcp-server/issues"
+  },
+  "homepage": "https://github.com/loopion/freebox-mcp-server#readme",
+  "icon": "logo.svg",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3"
+  }
+}
