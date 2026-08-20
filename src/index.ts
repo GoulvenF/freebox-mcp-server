@@ -12,10 +12,19 @@ import { registerDhcpTools } from "./tools/dhcp.js";
 import { registerDownloadTools } from "./tools/downloads.js";
 import { registerFilesystemTools } from "./tools/filesystem.js";
 import { registerNetworkTools } from "./tools/network.js";
+import { registerFreeplugTools } from "./tools/freeplug.js";
+import { registerParentalTools } from "./tools/parental.js";
+import { registerVpnServerTools } from "./tools/vpn-server.js";
+import { registerVpnClientTools } from "./tools/vpn-client.js";
+import { registerUpnpTools } from "./tools/upnp.js";
+import { registerNetshareTools } from "./tools/netshare.js";
+import { registerFtpTools } from "./tools/ftp.js";
+import { registerTftpTools } from "./tools/tftp.js";
+import { registerSfpTools } from "./tools/sfp.js";
 
 const server = new McpServer({
   name: "freebox-mcp-server",
-  version: "1.0.0",
+  version: "1.1.0",
 });
 
 // Register all tool groups
@@ -28,6 +37,15 @@ registerDhcpTools(server);
 registerDownloadTools(server);
 registerFilesystemTools(server);
 registerNetworkTools(server);
+registerFreeplugTools(server);
+registerParentalTools(server);
+registerVpnServerTools(server);
+registerVpnClientTools(server);
+registerUpnpTools(server);
+registerNetshareTools(server);
+registerFtpTools(server);
+registerTftpTools(server);
+registerSfpTools(server);
 
 // Run with stdio transport
 async function main(): Promise<void> {

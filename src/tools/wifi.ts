@@ -2,6 +2,46 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { freeboxClient } from "../services/freebox-client.js";
 import type { WifiGlobalConfig, WifiStation } from "../types.js";
+import { sanitizeDisplay } from "../utils/sanitize.js";
+
+/**
+ * The raw wifi/bss/ payload contains `config.key`: the WPA passphrase in
+ * cleartext. Never let it reach the MCP client / LLM context — build the
+ * response from an explicit allowlist of non-secret display fields instead of
+ * dumping the API object.
+ */
+interface WifiBssRaw {
+  id?: unknown;
+  phy_id?: unknown;
+  status?: { state?: unknown; sta_count?: unknown };
+  config?: {
+    enabled?: unknown;
+    ssid?: unknown;
+    encryption?: unknown;
+    hide_ssid?: unknown;
+    eapol_version?: unknown;
+    use_default_config?: unknown;
+  };
+}
+
+interface WifiApRaw {
+  id?: unknown;
+  name?: unknown;
+  status?: {
+    state?: unknown;
+    channel_width?: unknown;
+    primary_channel?: unknown;
+    secondary_channel?: unknown;
+  };
+  config?: {
+    band?: unknown;
+    channel_width?: unknown;
+    primary_channel?: unknown;
+    secondary_channel?: unknown;
+    dfs_enabled?: unknown;
+    ht?: unknown;
+  };
+}
 
 export function registerWifiTools(server: McpServer): void {
   // Get WiFi global config
@@ -128,7 +168,7 @@ Returns: JSON array of access points with id, name, config (band, channel_width,
     },
     async () => {
       try {
-        const response = await freeboxClient.apiRequest<unknown[]>(
+        const response = await freeboxClient.apiRequest<WifiApRaw[]>(
           "wifi/ap/"
         );
         if (!response.success) {
@@ -142,10 +182,26 @@ Returns: JSON array of access points with id, name, config (band, channel_width,
             ],
           };
         }
+        const aps = (response.result || []).map((ap) => ({
+          id: ap.id,
+          name: sanitizeDisplay(ap.name),
+          config: {
+            band: ap.config?.band,
+            channel_width: ap.config?.channel_width,
+            primary_channel: ap.config?.primary_channel,
+            secondary_channel: ap.config?.secondary_channel,
+            dfs_enabled: ap.config?.dfs_enabled,
+            ht: ap.config?.ht,
+          },
+          status: {
+            state: ap.status?.state,
+            channel_width: ap.status?.channel_width,
+            primary_channel: ap.status?.primary_channel,
+            secondary_channel: ap.status?.secondary_channel,
+          },
+        }));
         return {
-          content: [
-            { type: "text", text: JSON.stringify(response.result, null, 2) },
-          ],
+          content: [{ type: "text", text: JSON.stringify(aps, null, 2) }],
         };
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -213,7 +269,7 @@ Returns: Array of connected stations with mac, hostname, signal, conn_duration, 
         }
         const lines = stations.map((s) => {
           return [
-            `- **${s.hostname || s.mac}** (${s.mac})`,
+            `- **${sanitizeDisplay(s.hostname) || s.mac}** (${s.mac})`,
             `  Signal: ${s.signal} dB, State: ${s.state}`,
             `  Connected: ${Math.round(s.conn_duration / 60)} min`,
             `  RX: ${(s.rx_bytes / 1024 / 1024).toFixed(1)} MB @ ${(s.rx_rate / 1024).toFixed(1)} KB/s`,
@@ -245,7 +301,8 @@ Returns: Array of connected stations with mac, hostname, signal, conn_duration, 
       title: "List WiFi Networks (BSS)",
       description: `List all WiFi BSS (Basic Service Set / networks) configured on the Freebox, including SSID, encryption, state, and station count.
 
-Returns: JSON array of BSS with id, phy_id, config (enabled, ssid, encryption, hide_ssid), and status (state, sta_count).`,
+Returns: JSON array of BSS with id, phy_id, config (enabled, ssid, encryption, hide_ssid), and status (state, sta_count).
+Note: the WPA passphrase (config.key) is intentionally never returned.`,
       inputSchema: {},
       annotations: {
         readOnlyHint: true,
@@ -256,7 +313,7 @@ Returns: JSON array of BSS with id, phy_id, config (enabled, ssid, encryption, h
     },
     async () => {
       try {
-        const response = await freeboxClient.apiRequest<unknown[]>(
+        const response = await freeboxClient.apiRequest<WifiBssRaw[]>(
           "wifi/bss/"
         );
         if (!response.success) {
@@ -270,10 +327,26 @@ Returns: JSON array of BSS with id, phy_id, config (enabled, ssid, encryption, h
             ],
           };
         }
+        // NOTE: config.key (the WPA passphrase, in cleartext) is deliberately
+        // omitted — it must never enter the LLM context.
+        const bssList = (response.result || []).map((bss) => ({
+          id: bss.id,
+          phy_id: bss.phy_id,
+          config: {
+            enabled: bss.config?.enabled,
+            ssid: sanitizeDisplay(bss.config?.ssid),
+            encryption: bss.config?.encryption,
+            hide_ssid: bss.config?.hide_ssid,
+            eapol_version: bss.config?.eapol_version,
+            use_default_config: bss.config?.use_default_config,
+          },
+          status: {
+            state: bss.status?.state,
+            sta_count: bss.status?.sta_count,
+          },
+        }));
         return {
-          content: [
-            { type: "text", text: JSON.stringify(response.result, null, 2) },
-          ],
+          content: [{ type: "text", text: JSON.stringify(bssList, null, 2) }],
         };
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);

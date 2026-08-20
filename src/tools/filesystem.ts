@@ -2,6 +2,40 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { freeboxClient } from "../services/freebox-client.js";
 import type { FsTask } from "../types.js";
+import { sanitizeDisplay } from "../utils/sanitize.js";
+
+/**
+ * Baseline traversal guard + optional confinement to a set of allowed roots.
+ *
+ * `FREEBOX_FS_ALLOWED_ROOTS` (comma-separated absolute paths) is opt-in: when
+ * unset, only the unconditional ".." rejection applies, so existing setups keep
+ * working. Throws on violation.
+ */
+function assertPathAllowed(path: string, label = "path"): void {
+  if (path.includes("..")) {
+    throw new Error(
+      `Refusé : le ${label} "${sanitizeDisplay(path)}" contient "..", ce qui permettrait de sortir du répertoire visé.`
+    );
+  }
+
+  const raw = process.env.FREEBOX_FS_ALLOWED_ROOTS;
+  if (!raw) return;
+
+  const roots = raw
+    .split(",")
+    .map((r) => r.trim())
+    .filter(Boolean)
+    .map((r) => (r.endsWith("/") ? r : `${r}/`));
+  if (roots.length === 0) return;
+
+  const normalized = path.endsWith("/") ? path : `${path}/`;
+  const allowed = roots.some((root) => normalized.startsWith(root));
+  if (!allowed) {
+    throw new Error(
+      `Refusé : le ${label} "${sanitizeDisplay(path)}" est hors des racines autorisées par FREEBOX_FS_ALLOWED_ROOTS (${roots.join(", ")}).`
+    );
+  }
+}
 
 function toBase64(path: string): string {
   return Buffer.from(path, "utf-8").toString("base64");
@@ -65,6 +99,7 @@ Returns: List of files with name, type (dir/file), size, and modification date.`
     },
     async (params: { path: string; show_hidden: boolean }) => {
       try {
+        assertPathAllowed(params.path);
         const b64Path = toBase64(params.path);
         const response = await freeboxClient.apiRequest<FsEntry[]>(
           `fs/ls/${b64Path}?onlyFolder=0&countSubFolder=0&removeHidden=${params.show_hidden ? 0 : 1}`
@@ -100,7 +135,7 @@ Returns: List of files with name, type (dir/file), size, and modification date.`
           const date = new Date(e.modification * 1000)
             .toISOString()
             .slice(0, 10);
-          return `${icon} **${e.name}** — ${e.type === "dir" ? "directory" : formatBytes(e.size)} — ${date}`;
+          return `${icon} **${sanitizeDisplay(e.name)}** — ${e.type === "dir" ? "directory" : formatBytes(e.size)} — ${date}`;
         });
 
         return {
@@ -145,6 +180,7 @@ Returns: JSON with name, type, size, mimetype, modification timestamp, and other
     },
     async (params: { path: string }) => {
       try {
+        assertPathAllowed(params.path);
         const b64Path = toBase64(params.path);
         const response = await freeboxClient.apiRequest<FsEntry>(
           `fs/info/${b64Path}`
@@ -199,6 +235,8 @@ Args:
     },
     async (params: { parent: string; dirname: string }) => {
       try {
+        assertPathAllowed(params.parent, "parent");
+        assertPathAllowed(params.dirname, "dirname");
         const response = await freeboxClient.apiRequest(
           `fs/mkdir/`,
           "POST",
@@ -260,6 +298,8 @@ Args:
     },
     async (params: { src: string; dst: string }) => {
       try {
+        assertPathAllowed(params.src, "src");
+        assertPathAllowed(params.dst, "dst");
         const response = await freeboxClient.apiRequest(
           `fs/rename/`,
           "POST",
@@ -308,13 +348,13 @@ This creates an asynchronous task. Requires 'explorer' permission.
 Args:
   - files (string[]): Array of file paths to move.
   - dst (string): Destination directory path.
-  - mode (string, optional): Conflict mode: "overwrite", "skip", or "both" (default: "overwrite").`,
+  - mode (string, optional): Conflict mode: "overwrite", "skip", or "both" (default: "skip" — existing files are left untouched unless you explicitly ask for "overwrite").`,
       inputSchema: {
         files: z.array(z.string()).min(1).describe("File paths to move"),
         dst: z.string().describe("Destination directory path"),
         mode: z
           .enum(["overwrite", "skip", "both"])
-          .default("overwrite")
+          .default("skip")
           .describe("Conflict resolution mode"),
       },
       annotations: {
@@ -326,6 +366,8 @@ Args:
     },
     async (params: { files: string[]; dst: string; mode: string }) => {
       try {
+        params.files.forEach((f) => assertPathAllowed(f, "chemin de fichier"));
+        assertPathAllowed(params.dst, "dst");
         const response = await freeboxClient.apiRequest<FsTask>(
           `fs/mv/`,
           "POST",
@@ -375,24 +417,26 @@ This creates an asynchronous task. Requires 'explorer' permission.
 Args:
   - files (string[]): Array of file paths to copy.
   - dst (string): Destination directory path.
-  - mode (string, optional): Conflict mode: "overwrite", "skip", or "both" (default: "overwrite").`,
+  - mode (string, optional): Conflict mode: "overwrite", "skip", or "both" (default: "skip" — existing files are left untouched unless you explicitly ask for "overwrite").`,
       inputSchema: {
         files: z.array(z.string()).min(1).describe("File paths to copy"),
         dst: z.string().describe("Destination directory path"),
         mode: z
           .enum(["overwrite", "skip", "both"])
-          .default("overwrite")
+          .default("skip")
           .describe("Conflict resolution mode"),
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: true,
       },
     },
     async (params: { files: string[]; dst: string; mode: string }) => {
       try {
+        params.files.forEach((f) => assertPathAllowed(f, "chemin de fichier"));
+        assertPathAllowed(params.dst, "dst");
         const response = await freeboxClient.apiRequest<FsTask>(
           `fs/cp/`,
           "POST",
@@ -441,9 +485,16 @@ This creates an asynchronous task. Requires 'explorer' permission.
 WARNING: This permanently deletes files with no recycle bin.
 
 Args:
-  - files (string[]): Array of file paths to delete.`,
+  - files (string[]): Array of file paths to delete.
+  - confirm (string): REQUIRED. Deletion is permanent and there is no recycle bin. To proceed, pass confirm="JE-CONFIRME-LA-SUPPRESSION".`,
       inputSchema: {
         files: z.array(z.string()).min(1).describe("File paths to delete"),
+        confirm: z
+          .string()
+          .optional()
+          .describe(
+            'Pass the exact confirmation phrase shown in the tool description to execute this action.'
+          ),
       },
       annotations: {
         readOnlyHint: false,
@@ -452,8 +503,20 @@ Args:
         openWorldHint: true,
       },
     },
-    async (params: { files: string[] }) => {
+    async (params: { files: string[]; confirm?: string }) => {
       try {
+        if (params.confirm !== "JE-CONFIRME-LA-SUPPRESSION") {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: 'Refusé : cette action est sensible. La suppression est définitive et sans corbeille sur le stockage de la Freebox. Confirmez avec confirm="JE-CONFIRME-LA-SUPPRESSION".',
+              },
+            ],
+          };
+        }
+        params.files.forEach((f) => assertPathAllowed(f, "chemin de fichier"));
         const response = await freeboxClient.apiRequest<FsTask>(
           `fs/rm/`,
           "POST",

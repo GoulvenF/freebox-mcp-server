@@ -1,4 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { freeboxClient } from "../services/freebox-client.js";
 import type { SystemInfo } from "../types.js";
 
@@ -69,8 +70,18 @@ Returns: JSON with mac, firmware_version, uptime, uptime_val, temp_cpub, temp_cp
     {
       title: "Reboot Freebox",
       description: `Reboot the Freebox server. This will disconnect all devices temporarily. Use with caution.
-Requires 'settings' permission.`,
-      inputSchema: {},
+Requires 'settings' permission.
+
+Args:
+  - confirm (string): REQUIRED. Rebooting cuts internet, WiFi and telephony for every device in the home for several minutes. To proceed, pass confirm="JE-CONFIRME-LE-REBOOT".`,
+      inputSchema: {
+        confirm: z
+          .string()
+          .optional()
+          .describe(
+            'Pass the exact confirmation phrase shown in the tool description to execute this action.'
+          ),
+      },
       annotations: {
         readOnlyHint: false,
         destructiveHint: true,
@@ -78,8 +89,19 @@ Requires 'settings' permission.`,
         openWorldHint: true,
       },
     },
-    async () => {
+    async (params: { confirm?: string }) => {
       try {
+        if (params.confirm !== "JE-CONFIRME-LE-REBOOT") {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: 'Refusé : cette action est sensible. Redémarrer la Freebox coupe Internet, le WiFi et la téléphonie pour tous les appareils du foyer pendant plusieurs minutes. Confirmez avec confirm="JE-CONFIRME-LE-REBOOT".',
+              },
+            ],
+          };
+        }
         const response = await freeboxClient.apiRequest("system/reboot/", "POST");
         if (!response.success) {
           return {

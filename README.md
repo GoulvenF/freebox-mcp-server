@@ -67,13 +67,69 @@ claude mcp add freebox npx -y freebox-mcp-server
 
 ---
 
+## ⚠️ Avertissement de sécurité : le fichier `credentials.json`
+
+**À lire avant d'utiliser ce serveur.**
+
+Après `freebox_register_app`, ce serveur écrit un fichier :
+
+```
+~/.freebox-mcp/credentials.json
+```
+
+Ce fichier contient un **`app_token`** :
+
+- il est **de longue durée et n'expire jamais** — il reste valable tant que vous ne le révoquez pas explicitement ;
+- il est stocké **en clair** (le fichier est en `0o600`, mais son contenu n'est pas chiffré) ;
+- il équivaut, en pratique, à un **mot de passe maître** sur votre Freebox : quiconque le possède peut ouvrir une session et utiliser toutes les permissions accordées à l'application (réglages, explorateur de fichiers, téléchargements…).
+
+### Excluez-le de la portée des outils de lecture de fichiers de votre agent
+
+Si votre assistant IA dispose d'outils de lecture de fichiers locaux (Claude Code, Cursor, un agent avec un MCP « filesystem », etc.), **il peut lire ce fichier** et le faire apparaître dans son contexte — donc potentiellement dans des logs, un historique de conversation, ou une réponse renvoyée à un tiers.
+
+Mesures recommandées :
+
+- ajoutez `~/.freebox-mcp/` (et `**/credentials.json`) aux chemins **refusés** de vos outils de lecture de fichiers (par ex. `permissions.deny` dans `~/.claude/settings.json`, ou l'équivalent chez votre client MCP) ;
+- ne configurez jamais la racine d'un serveur MCP « filesystem » sur votre répertoire personnel sans exclusion explicite de `~/.freebox-mcp/` ;
+- en alternative, fournissez le token via les variables d'environnement `FREEBOX_APP_TOKEN` / `FREEBOX_APP_ID` (aucun fichier n'est alors écrit sur le disque) ;
+- ne partagez ni ne committez jamais ce fichier.
+
+### Révoquer l'accès
+
+Si le token a fuité (ou en cas de doute), révoquez-le immédiatement depuis l'interface web Freebox OS :
+
+**Freebox OS → Paramètres de la Freebox → Gestion des accès → onglet « Applications » → sélectionnez l'application → Supprimer / révoquer.**
+
+Le token est alors invalidé côté Freebox. Supprimez ensuite `~/.freebox-mcp/credentials.json` et relancez `freebox_register_app` pour ré-autoriser l'application (revalidation physique sur l'écran LCD).
+
+C'est également depuis cet écran que vous pouvez restreindre les permissions accordées à l'application (par exemple retirer « Modification des réglages » ou « Accès aux fichiers ») afin de limiter l'impact d'une fuite.
+
 ## Sécurité & Vie Privée
 
-Ce serveur est conçu avec la sécurité à l'esprit :
-- Les tokens locaux sont correctement stockés avec des permissions restreintes d'accès (`0o600`).
-- Les commandes destructives (suppression de fichiers `freebox_fs_delete`, `freebox_reboot`) sont signalées dans le SDK MCP pour demander une confirmation du client avant exécution.
-- Les entrées de requêtes réseau (URL) sont sécurisées.
-- L'authentification utilise la méthode officielle HMAC-SHA1 Challenge. Aucun mot de passe maitre n'est stocké.
+Autres mesures en place :
+
+- Les tokens locaux sont stockés avec des permissions restreintes (`0o600`) — voir toutefois l'avertissement ci-dessus.
+- Les actions les plus sensibles exigent une **phrase de confirmation explicite** passée en paramètre `confirm`, vérifiée côté serveur (et non seulement un « hint » MCP), afin qu'une injection de prompt ne puisse pas les déclencher seule :
+  - `freebox_reboot` → `JE-CONFIRME-LE-REBOOT`
+  - `freebox_fs_delete` → `JE-CONFIRME-LA-SUPPRESSION`
+  - `freebox_port_forwarding_add` → `JE-CONFIRME-OUVERTURE-PORT`
+  - `freebox_connection_config_update` (activation de `remote_access` / `api_remote_access`) → `JE-CONFIRME-EXPOSER-MA-FREEBOX`
+  - `freebox_dhcp_config_update` (changement de `dns`) → `JE-CONFIRME-LE-CHANGEMENT-DNS`
+- La clé WPA (`config.key`) n'est **jamais** renvoyée par `freebox_wifi_bss_list` : la réponse est construite à partir d'une liste blanche de champs non sensibles.
+- `freebox_download_add` refuse les URL pointant vers des adresses privées, loopback ou link-local (protection SSRF).
+- La découverte se fait **en HTTPS uniquement**. Le repli silencieux en HTTP a été supprimé ; il faut désormais opter explicitement pour `FREEBOX_ALLOW_INSECURE_HTTP=1`. Le champ `api_domain` renvoyé par la découverte est validé (`.fbxos.fr` / `.freebox.fr`).
+- Les corps de réponse bruts de l'API ne sont plus renvoyés dans les messages d'erreur MCP : ils sont écrits sur `stderr` pour le débogage local uniquement.
+- Optionnel : `FREEBOX_FS_ALLOWED_ROOTS` (liste de chemins séparés par des virgules) confine les outils `freebox_fs_*` à ces racines. Les chemins contenant `..` sont refusés dans tous les cas.
+- L'authentification utilise la méthode officielle HMAC-SHA1 Challenge. Aucun mot de passe maître n'est stocké.
+
+### Variables d'environnement
+
+| Variable | Effet |
+| --- | --- |
+| `FREEBOX_HOST` | Hôte de découverte (défaut : `mafreebox.freebox.fr`). |
+| `FREEBOX_ALLOW_INSECURE_HTTP` | `1` autorise le repli en HTTP en clair si HTTPS échoue. **Déconseillé.** |
+| `FREEBOX_FS_ALLOWED_ROOTS` | Racines autorisées pour les outils fichiers, séparées par des virgules. |
+| `FREEBOX_APP_TOKEN` / `FREEBOX_APP_ID` | Fournir le token par l'environnement au lieu du fichier `credentials.json`. |
 
 ## Licence
 MIT License.

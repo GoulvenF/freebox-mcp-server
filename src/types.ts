@@ -267,3 +267,301 @@ export interface SwitchPortStatus {
   mode: string;
   mac_list: Array<{ mac: string; hostname?: string }>;
 }
+
+// Freeplug (CPL/PLC)
+export interface Freeplug {
+  id: string;
+  local: boolean;
+  net_role: "sta" | "pco" | "cco";
+  model: string;
+  eth_port_status: "up" | "down" | "unknown";
+  eth_full_duplex: boolean;
+  has_network: boolean;
+  eth_speed: number;
+  inactive: number;
+  net_id: string;
+  rx_rate: number;
+  tx_rate: number;
+}
+
+export interface FreeplugNetwork {
+  id: string;
+  members: Freeplug[];
+}
+
+// Parental control / Network control
+export interface Profile {
+  id: number;
+  name: string;
+  url?: string;
+  icon?: string;
+}
+
+export type NetworkControlMode = "allowed" | "denied" | "webonly";
+
+export interface NetworkControl {
+  profile_id: number;
+  next_change: number;
+  override_mode: NetworkControlMode;
+  current_mode: NetworkControlMode;
+  rule_mode: NetworkControlMode;
+  override_until?: number;
+  override: boolean;
+  macs: string[];
+  hosts?: LanHost[];
+  resolution: number;
+  cdayranges: string[];
+}
+
+export interface NetworkControlRule {
+  id: number;
+  profile_id: number;
+  name: string;
+  mode: NetworkControlMode;
+  start_time: number;
+  end_time: number;
+  weekdays: boolean[];
+  enabled: boolean;
+}
+
+// VPN Server
+export type VpnServerType = "ipsec" | "pptp" | "openvpn" | "wireguard";
+export type VpnServerState =
+  | "stopped"
+  | "starting"
+  | "started"
+  | "stopping"
+  | "error";
+
+export interface VpnServer {
+  name: string;
+  type: VpnServerType;
+  state: VpnServerState;
+  connection_count: number;
+  auth_connection_count: number;
+}
+
+export interface VpnServerConfig {
+  id: string;
+  type: VpnServerType;
+  enabled: boolean;
+  enable_ipv4?: boolean;
+  enable_ipv6?: boolean;
+  port: number;
+  min_port?: number;
+  max_port?: number;
+  port_ike?: number;
+  port_nat?: number;
+  conf_pptp?: {
+    mppe: "disable" | "require" | "require_128";
+    allowed_auth: Record<string, boolean>;
+  };
+  conf_openvpn?: {
+    cipher: "blowfish" | "aes128" | "aes256" | "chacha20poly1305";
+    disable_fragment?: boolean;
+    use_tcp?: boolean;
+  };
+  conf_wireguard?: {
+    mtu: number;
+  };
+  conf_ipsec?: {
+    ike_version: number;
+    auth_modes: Array<{ id_source: string; id_custom?: string }>;
+  };
+  ip_start?: string;
+  ip_end?: string;
+  ip6_start?: string;
+  ip6_end?: string;
+}
+
+export interface VpnServerUser {
+  login: string;
+  type: "standard" | "wireguard";
+  password_set: boolean;
+  ip_reservation?: string;
+  conf_wireguard?: {
+    keepalive: number;
+    psk: boolean;
+  };
+}
+
+export interface VpnIpPool {
+  ip_start: string;
+  ip_end: string;
+  reservations: Array<{ login: string; ip: string }>;
+}
+
+export interface VpnServerConnection {
+  id: string;
+  vpn: string;
+  user: string;
+  authenticated: boolean;
+  auth_time: number;
+  src_ip: string;
+  src_port: number;
+  local_ip: string;
+  rx_bytes: number;
+  tx_bytes: number;
+}
+
+// VPN Client
+export type VpnClientType = "pptp" | "openvpn" | "wireguard";
+
+export interface VpnClientConfig {
+  id: string;
+  description: string;
+  type: VpnClientType;
+  active: boolean;
+  conf_pptp?: {
+    remote_host: string;
+    username: string;
+    password?: string;
+    mppe: "disable" | "require" | "require_128";
+    allowed_auth: Record<string, boolean>;
+  };
+  conf_wireguard?: {
+    remote_addr: string;
+    remote_port: number;
+    remote_public_key: string;
+    remote_preshared_key?: string;
+    local_priv_key: string;
+    local_addr: Array<{ ip: string; len: number }>;
+    dns: string[];
+  };
+}
+
+export interface VpnClientStatus {
+  enabled: boolean;
+  active_vpn?: string;
+  active_vpn_description?: string;
+  type?: VpnClientType;
+  state:
+    | "waiting_wan"
+    | "going_up"
+    | "up"
+    | "going_down"
+    | "down";
+  last_up?: number;
+  last_try?: number;
+  next_try?: number;
+  last_error?: string;
+  stats?: {
+    rate_up: number;
+    rate_down: number;
+    bytes_up: number;
+    bytes_down: number;
+  };
+  ipv4?: {
+    config_valid: boolean;
+    ip_mask?: { ip: string; mask: string };
+    domain?: string;
+    gateway?: string;
+    dns?: string[];
+    provider?: "none" | "static" | "ppp" | "dhcp";
+  };
+}
+
+// UPnP IGD
+export interface UpnpIgdConfig {
+  enabled: boolean;
+  version: 1 | 2;
+}
+
+export interface UpnpRedir {
+  id: string;
+  enabled: boolean;
+  ext_src_ip: string;
+  ext_port: number;
+  int_ip: string;
+  int_port: number;
+  proto: string;
+  desc: string;
+  remaining: number;
+  host?: LanHost;
+}
+
+// UPnP AV
+export interface UpnpAvConfig {
+  enabled: boolean;
+}
+
+// Network share (Samba / AFP)
+export interface SambaConfig {
+  file_share_enabled: boolean;
+  print_share_enabled: boolean;
+  logon_enabled: boolean;
+  logon_user?: string;
+  logon_password?: string;
+  workgroup: string;
+  smbv2_enabled?: boolean;
+}
+
+export type AfpServerType =
+  | "powerbook"
+  | "powermac"
+  | "macmini"
+  | "imac"
+  | "macbook"
+  | "macbookpro"
+  | "macbookair"
+  | "macpro"
+  | "appletv"
+  | "airport"
+  | "xserve";
+
+export interface AfpConfig {
+  enabled: boolean;
+  guest_allow: boolean;
+  server_type: AfpServerType;
+  login_name?: string;
+  login_password?: string;
+}
+
+// FTP
+export interface FtpConfig {
+  enabled: boolean;
+  allow_anonymous: boolean;
+  allow_anonymous_write: boolean;
+  username?: string;
+  password?: string;
+  allow_remote_access: boolean;
+  weak_password?: boolean;
+  port_ctrl?: number;
+  port_data?: number;
+  remote_domain?: string;
+}
+
+// TFTP
+export interface TftpConfig {
+  enabled: boolean;
+  root: string;
+}
+
+// SFP (fiber module)
+export type SfpType =
+  | "p2p_1g"
+  | "p2p_2d5g_no_aneg"
+  | "p2p_10g"
+  | "copper_1g"
+  | "copper_sgmii_1g"
+  | "copper_sgmii_10g"
+  | "copper_usxgmii_10g";
+
+export interface SfpConfig {
+  sfp_type_forced: boolean;
+  sfp_type_forced_value?: SfpType | "";
+  available_sfp_types: SfpType[];
+}
+
+export interface SfpStatus {
+  present: boolean;
+  eeprom_valid: boolean;
+  supported: boolean;
+  type?: SfpType;
+  power_good: boolean;
+  link: boolean;
+  vendor_name?: string;
+  part_number?: string;
+  hardware_rev?: string;
+  serial_number?: string;
+}

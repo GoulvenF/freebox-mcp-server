@@ -85,7 +85,8 @@ Args:
   - ip_proto (string): Protocol: "tcp" or "udp".
   - comment (string, optional): Description for the rule.
   - enabled (boolean, optional): Enable the rule (default: true).
-  - src_ip (string, optional): Source IP filter (only allow from this IP).`,
+  - src_ip (string, optional): Source IP filter (only allow from this IP).
+  - confirm (string): REQUIRED. Opening a WAN port exposes a device on your LAN directly to the public internet. To proceed, pass confirm="JE-CONFIRME-OUVERTURE-PORT".`,
       inputSchema: {
         lan_ip: z.string().describe("Destination LAN IP"),
         lan_port: z.number().int().min(1).max(65535).describe("LAN port"),
@@ -109,10 +110,16 @@ Args:
           .string()
           .optional()
           .describe("Source IP filter (optional)"),
+        confirm: z
+          .string()
+          .optional()
+          .describe(
+            'Pass the exact confirmation phrase shown in the tool description to execute this action.'
+          ),
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: true,
       },
@@ -126,8 +133,20 @@ Args:
       comment: string;
       enabled: boolean;
       src_ip?: string;
+      confirm?: string;
     }) => {
       try {
+        if (params.confirm !== "JE-CONFIRME-OUVERTURE-PORT") {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: 'Refusé : cette action est sensible. Ouvrir un port WAN expose directement un appareil de votre réseau local à Internet public (scans, exploitation de services vulnérables). Confirmez avec confirm="JE-CONFIRME-OUVERTURE-PORT".',
+              },
+            ],
+          };
+        }
         const body: Record<string, unknown> = {
           lan_ip: params.lan_ip,
           lan_port: params.lan_port,

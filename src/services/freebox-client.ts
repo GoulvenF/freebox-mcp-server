@@ -26,6 +26,9 @@ import {
   POLL_TIMEOUT_MS,
 } from "../constants.js";
 
+/** Domain suffixes Free actually uses for the remote API endpoint. */
+const FREEBOX_API_DOMAIN_SUFFIXES = [".fbxos.fr", ".freebox.fr"];
+
 const CREDENTIALS_DIR = join(homedir(), ".freebox-mcp");
 const CREDENTIALS_FILE = join(CREDENTIALS_DIR, "credentials.json");
 
@@ -100,6 +103,20 @@ export class FreeboxClient {
   }
 
   /**
+   * Log a raw (potentially sensitive) response body to stderr for local
+   * debugging, and return a generic message safe to surface to the caller.
+   * The raw body never reaches the MCP client / LLM context.
+   */
+  private failSafely(context: string, status: number, body: string): Error {
+    process.stderr.write(
+      `[freebox-mcp] ${context} — HTTP ${status} — raw body: ${body.slice(0, 500)}\n`
+    );
+    return new Error(
+      `Invalid response from Freebox API (${context}, HTTP status ${status}). See server stderr logs for details.`
+    );
+  }
+
+  /**
    * Make an authenticated API request.
    */
   async apiRequest<T = unknown>(
@@ -107,6 +124,13 @@ export class FreeboxClient {
     method: string = "GET",
     body?: unknown
   ): Promise<FreeboxApiResponse<T>> {
+    // Defense-in-depth: never let a caller escape the API base path.
+    if (path.includes("..") || path.startsWith("/")) {
+      throw new Error(
+        `Invalid API path: path traversal or absolute path is not allowed.`
+      );
+    }
+
     await this.ensureSession();
 
     const url = `${this.baseUrl}/v${DEFAULT_API_VERSION}/${path}`;
@@ -120,7 +144,7 @@ export class FreeboxClient {
     try {
       parsed = JSON.parse(response.data) as FreeboxApiResponse<T>;
     } catch {
-      throw new Error(`Invalid JSON from Freebox API (${method} ${path}, status ${response.status}): ${response.data.slice(0, 200)}`);
+      throw this.failSafely(`${method} ${path}`, response.status, response.data);
     }
 
     // Handle expired session - try to re-authenticate once
@@ -134,7 +158,7 @@ export class FreeboxClient {
       try {
         return JSON.parse(retry.data) as FreeboxApiResponse<T>;
       } catch {
-        throw new Error(`Invalid JSON from Freebox API on retry (${method} ${path}, status ${retry.status}): ${retry.data.slice(0, 200)}`);
+        throw this.failSafely(`${method} ${path} (retry)`, retry.status, retry.data);
       }
     }
 
@@ -150,15 +174,26 @@ export class FreeboxClient {
     const host =
       process.env.FREEBOX_HOST || DEFAULT_FREEBOX_HOST;
 
-    // Try HTTPS first, then fallback to HTTP
+    // HTTPS only. An automatic silent downgrade to HTTP would expose the
+    // session token and every API payload to anyone on the local network,
+    // so it must be an explicit, opt-in decision by the operator.
     let response: { status: number; data: string };
     try {
       response = await this.httpRequest(
         `https://${host}/api_version`
       );
-    } catch {
+    } catch (err: unknown) {
+      if (process.env.FREEBOX_ALLOW_INSECURE_HTTP !== "1") {
+        const reason = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `HTTPS discovery of the Freebox at "${host}" failed (${reason}). ` +
+            `Refusing to fall back to plaintext HTTP: doing so would send the session token ` +
+            `and all API traffic in the clear over your local network. ` +
+            `Check FREEBOX_HOST, or set FREEBOX_ALLOW_INSECURE_HTTP=1 to explicitly accept that risk.`
+        );
+      }
       process.stderr.write(
-        "WARNING: HTTPS discovery failed, falling back to insecure HTTP. Set FREEBOX_HOST to a valid hostname if this is unexpected.\n"
+        "WARNING: HTTPS discovery failed; FREEBOX_ALLOW_INSECURE_HTTP=1 is set, falling back to insecure plaintext HTTP.\n"
       );
       response = await this.httpRequest(
         `http://${host}/api_version`
@@ -168,12 +203,25 @@ export class FreeboxClient {
     try {
       this.discovery = JSON.parse(response.data) as FreeboxDiscovery;
     } catch {
-      throw new Error(`Invalid JSON from Freebox discovery endpoint: ${response.data.slice(0, 200)}`);
+      throw this.failSafely("GET /api_version", response.status, response.data);
     }
 
     // Build base URL
     if (this.discovery.https_available) {
-      this.baseUrl = `https://${this.discovery.api_domain}:${this.discovery.https_port}${this.discovery.api_base_url}`;
+      // api_domain comes from the (unauthenticated) discovery response, so it
+      // must not be trusted blindly as a request target.
+      const apiDomain = this.discovery.api_domain || "";
+      const isKnownFreeboxDomain = FREEBOX_API_DOMAIN_SUFFIXES.some((suffix) =>
+        apiDomain.toLowerCase().endsWith(suffix)
+      );
+      if (!isKnownFreeboxDomain) {
+        throw new Error(
+          `Freebox discovery returned an untrusted api_domain ("${apiDomain}"). ` +
+            `Expected a domain ending in ${FREEBOX_API_DOMAIN_SUFFIXES.join(" or ")}. ` +
+            `Aborting to avoid sending credentials to an attacker-controlled host.`
+        );
+      }
+      this.baseUrl = `https://${apiDomain}:${this.discovery.https_port}${this.discovery.api_base_url}`;
       this.useHttps = true;
     } else {
       this.baseUrl = `http://${host}${this.discovery.api_base_url}`;
@@ -249,7 +297,7 @@ export class FreeboxClient {
     try {
       parsed = JSON.parse(response.data) as FreeboxApiResponse<AuthorizationResult>;
     } catch {
-      throw new Error(`Invalid JSON from Freebox authorize endpoint: ${response.data.slice(0, 200)}`);
+      throw this.failSafely("POST login/authorize/", response.status, response.data);
     }
     if (!parsed.success || !parsed.result) {
       throw new Error(
@@ -316,7 +364,7 @@ export class FreeboxClient {
     try {
       loginParsed = JSON.parse(loginResponse.data) as FreeboxApiResponse<LoginStatus>;
     } catch {
-      throw new Error(`Invalid JSON from Freebox login endpoint: ${loginResponse.data.slice(0, 200)}`);
+      throw this.failSafely("GET login/", loginResponse.status, loginResponse.data);
     }
 
     if (!loginParsed.success || !loginParsed.result) {
@@ -343,7 +391,7 @@ export class FreeboxClient {
     try {
       sessionParsed = JSON.parse(sessionResponse.data) as FreeboxApiResponse<SessionResult>;
     } catch {
-      throw new Error(`Invalid JSON from Freebox session endpoint: ${sessionResponse.data.slice(0, 200)}`);
+      throw this.failSafely("POST login/session/", sessionResponse.status, sessionResponse.data);
     }
 
     if (!sessionParsed.success || !sessionParsed.result) {

@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { freeboxClient } from "../services/freebox-client.js";
 import type { LanConfig, LanHost } from "../types.js";
+import { sanitizeDisplay } from "../utils/sanitize.js";
 
 export function registerLanTools(server: McpServer): void {
   // Get LAN configuration
@@ -122,7 +123,7 @@ Returns: Array of hosts with id, primary_name, host_type, mac, IP addresses, rea
             : h.reachable
               ? "🟡 reachable"
               : "⚫ offline";
-          return `- **${h.primary_name || "Unknown"}** (${h.host_type}) — ${status}\n  MAC: ${mac} | IP: ${ips.join(", ") || "N/A"}${h.vendor_name ? ` | Vendor: ${h.vendor_name}` : ""}`;
+          return `- **${sanitizeDisplay(h.primary_name) || "Unknown"}** (${sanitizeDisplay(h.host_type, 40)}) — ${status}\n  MAC: ${sanitizeDisplay(mac, 40)} | IP: ${ips.map((ip) => sanitizeDisplay(ip, 45)).join(", ") || "N/A"}${h.vendor_name ? ` | Vendor: ${sanitizeDisplay(h.vendor_name)}` : ""}`;
         });
 
         return {

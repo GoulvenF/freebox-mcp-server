@@ -87,7 +87,7 @@ Returns: Formatted connection status with type, state, media, IPs, bandwidth, cu
       title: "Get Connection Configuration",
       description: `Get the Freebox connection configuration including remote access settings, WOL, ad blocking, and API remote access.
 
-Returns: JSON with ping, remote_access, remote_access_port, wol, adblock, api_remote_access, allow_token_request.`,
+Returns: JSON with ping, remote_access, remote_access_port, remote_access_min_port, remote_access_max_port, wol, adblock, adblock_not_set, api_remote_access, allow_token_request.`,
       inputSchema: {},
       annotations: {
         readOnlyHint: true,
@@ -111,10 +111,23 @@ Returns: JSON with ping, remote_access, remote_access_port, wol, adblock, api_re
             ],
           };
         }
+        const c = response.result!;
+        // Explicit allowlist: never echo back credential-ish fields the API
+        // may add to this object.
+        const safe = {
+          ping: c.ping,
+          remote_access: c.remote_access,
+          remote_access_port: c.remote_access_port,
+          remote_access_min_port: c.remote_access_min_port,
+          remote_access_max_port: c.remote_access_max_port,
+          wol: c.wol,
+          adblock: c.adblock,
+          adblock_not_set: c.adblock_not_set,
+          api_remote_access: c.api_remote_access,
+          allow_token_request: c.allow_token_request,
+        };
         return {
-          content: [
-            { type: "text", text: JSON.stringify(response.result, null, 2) },
-          ],
+          content: [{ type: "text", text: JSON.stringify(safe, null, 2) }],
         };
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -140,7 +153,8 @@ Args:
   - adblock (boolean, optional): Enable/disable ad blocking
   - remote_access (boolean, optional): Enable/disable remote access
   - remote_access_port (number, optional): Remote access port
-  - api_remote_access (boolean, optional): Enable/disable API remote access`,
+  - api_remote_access (boolean, optional): Enable/disable API remote access
+  - confirm (string, optional): REQUIRED when enabling 'remote_access' or 'api_remote_access'. Enabling either exposes your Freebox (and its full admin API) to the public internet. To proceed, pass confirm="JE-CONFIRME-EXPOSER-MA-FREEBOX".`,
       inputSchema: {
         ping: z.boolean().optional().describe("Enable/disable ping response"),
         wol: z.boolean().optional().describe("Enable/disable Wake on LAN"),
@@ -158,19 +172,39 @@ Args:
           .boolean()
           .optional()
           .describe("Enable/disable API remote access"),
+        confirm: z
+          .string()
+          .optional()
+          .describe(
+            'Pass the exact confirmation phrase shown in the tool description to execute this action.'
+          ),
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: true,
         openWorldHint: true,
       },
     },
     async (params: Record<string, unknown>) => {
       try {
+        const exposesFreebox =
+          params.remote_access === true || params.api_remote_access === true;
+        if (exposesFreebox && params.confirm !== "JE-CONFIRME-EXPOSER-MA-FREEBOX") {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: 'Refusé : cette action est sensible. Activer remote_access ou api_remote_access expose votre Freebox — et son API d\'administration complète — sur Internet public. Confirmez avec confirm="JE-CONFIRME-EXPOSER-MA-FREEBOX".',
+              },
+            ],
+          };
+        }
         // Filter out undefined values
         const body: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(params)) {
+          if (key === "confirm") continue;
           if (value !== undefined) body[key] = value;
         }
         const response = await freeboxClient.apiRequest<ConnectionConfig>(

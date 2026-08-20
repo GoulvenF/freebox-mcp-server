@@ -6,6 +6,7 @@ import type {
   DhcpStaticLease,
   DhcpDynamicLease,
 } from "../types.js";
+import { sanitizeDisplay } from "../utils/sanitize.js";
 
 export function registerDhcpTools(server: McpServer): void {
   // Get DHCP config
@@ -75,7 +76,8 @@ Args:
   - ip_range_end (string, optional): End of DHCP IP range
   - sticky_assign (boolean, optional): Always assign same IP to a host
   - always_broadcast (boolean, optional): Always broadcast DHCP responses
-  - dns (string[], optional): DNS server list`,
+  - dns (string[], optional): DNS server list
+  - confirm (string, optional): REQUIRED when changing 'dns'. Changing the DNS servers can redirect all your network traffic to an attacker-controlled resolver. To proceed, pass confirm="JE-CONFIRME-LE-CHANGEMENT-DNS".`,
       inputSchema: {
         enabled: z.boolean().optional().describe("Enable/disable DHCP"),
         ip_range_start: z
@@ -89,18 +91,39 @@ Args:
           .array(z.string())
           .optional()
           .describe("DNS servers list"),
+        confirm: z
+          .string()
+          .optional()
+          .describe(
+            'Pass the exact confirmation phrase shown in the tool description to execute this action.'
+          ),
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: true,
         openWorldHint: true,
       },
     },
     async (params: Record<string, unknown>) => {
       try {
+        if (
+          params.dns !== undefined &&
+          params.confirm !== "JE-CONFIRME-LE-CHANGEMENT-DNS"
+        ) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: 'Refusé : cette action est sensible. Changer les serveurs DNS du réseau permet de rediriger tout le trafic de vos appareils vers un résolveur tiers (interception, filtrage, redirection de sites). Confirmez avec confirm="JE-CONFIRME-LE-CHANGEMENT-DNS".',
+              },
+            ],
+          };
+        }
         const body: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(params)) {
+          if (key === "confirm") continue;
           if (value !== undefined) body[key] = value;
         }
         const response = await freeboxClient.apiRequest<DhcpConfig>(
@@ -177,7 +200,7 @@ Returns: Array of leases with mac, hostname, ip, lease_remaining (seconds), assi
         }
         const lines = leases.map(
           (l) =>
-            `- **${l.hostname || l.mac}** — ${l.ip} (MAC: ${l.mac}, remaining: ${Math.round(l.lease_remaining / 60)} min${l.is_static ? ", static" : ""})`
+            `- **${sanitizeDisplay(l.hostname) || l.mac}** — ${l.ip} (MAC: ${l.mac}, remaining: ${Math.round(l.lease_remaining / 60)} min${l.is_static ? ", static" : ""})`
         );
         return {
           content: [
@@ -237,7 +260,7 @@ Returns: Array of static leases with id, mac, hostname, ip, comment.`,
         }
         const lines = leases.map(
           (l) =>
-            `- **${l.hostname}** — ${l.ip} (MAC: ${l.mac}${l.comment ? `, comment: ${l.comment}` : ""})`
+            `- **${sanitizeDisplay(l.hostname)}** — ${l.ip} (MAC: ${l.mac}${l.comment ? `, comment: ${sanitizeDisplay(l.comment)}` : ""})`
         );
         return {
           content: [
@@ -334,7 +357,13 @@ Requires 'settings' permission.
 Args:
   - id (string): Lease ID (same as MAC address, e.g., "00:DE:AD:B0:0B:55").`,
       inputSchema: {
-        id: z.string().describe("Lease ID (MAC address)"),
+        id: z
+          .string()
+          .regex(
+            /^[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}$/,
+            "MAC invalide (format attendu : 00:DE:AD:B0:0B:55)"
+          )
+          .describe("Lease ID (MAC address)"),
       },
       annotations: {
         readOnlyHint: false,
@@ -346,7 +375,7 @@ Args:
     async (params: { id: string }) => {
       try {
         const response = await freeboxClient.apiRequest(
-          `dhcp/static_lease/${params.id}`,
+          `dhcp/static_lease/${encodeURIComponent(params.id)}`,
           "DELETE"
         );
         if (!response.success) {

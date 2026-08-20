@@ -2,6 +2,51 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { freeboxClient } from "../services/freebox-client.js";
 import type { DownloadTask } from "../types.js";
+import { sanitizeDisplay } from "../utils/sanitize.js";
+
+/**
+ * Reject URLs pointing at the Freebox itself or at other hosts on the private
+ * network — the Freebox downloader runs inside the LAN, so an attacker-supplied
+ * URL would otherwise turn this tool into an SSRF pivot.
+ *
+ * NOTE: this covers IP literals only. A hostname that *resolves* to a private
+ * address cannot be reliably blocked client-side without doing the DNS
+ * resolution here and pinning it (and even then, DNS rebinding remains
+ * possible). Literal IPs are the main practical vector, so that is what is
+ * enforced.
+ */
+function isPrivateHost(hostname: string): boolean {
+  // Strip IPv6 brackets, normalise case.
+  const host = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+
+  if (host === "localhost" || host.endsWith(".localhost")) return true;
+
+  // IPv4 literal
+  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    if (a === 127) return true; // 127.0.0.0/8 loopback
+    if (a === 10) return true; // 10.0.0.0/8
+    if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+    if (a === 192 && b === 168) return true; // 192.168.0.0/16
+    if (a === 169 && b === 254) return true; // 169.254.0.0/16 link-local
+    if (a === 0) return true; // 0.0.0.0/8
+    return false;
+  }
+
+  // IPv6 literal
+  if (host.includes(":")) {
+    if (host === "::1" || host === "::") return true; // loopback / unspecified
+    if (/^f[cd][0-9a-f]{2}:/.test(host)) return true; // fc00::/7 unique-local
+    if (/^fe[89ab][0-9a-f]:/.test(host)) return true; // fe80::/10 link-local
+    // IPv4-mapped (::ffff:127.0.0.1)
+    const mapped = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/.exec(host);
+    if (mapped) return isPrivateHost(mapped[1]);
+    return false;
+  }
+
+  return false;
+}
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -63,7 +108,7 @@ Returns: Formatted list of download tasks with id, name, status, size, progress 
         const lines = tasks.map((t) => {
           const progress = t.rx_pct / 100;
           return [
-            `- **${t.name}** (ID: ${t.id})`,
+            `- **${sanitizeDisplay(t.name)}** (ID: ${t.id})`,
             `  Type: ${t.type} | Status: ${t.status} | Progress: ${progress.toFixed(1)}%`,
             `  Size: ${formatBytes(t.size)} | ↓ ${formatBytes(t.rx_rate)}/s | ↑ ${formatBytes(t.tx_rate)}/s`,
             `  ETA: ${formatEta(t.eta)}${t.error !== "none" ? ` | Error: ${t.error}` : ""}`,
@@ -124,10 +169,30 @@ Returns: Full download task details as JSON.`,
             ],
           };
         }
+        const t = response.result!;
+        // Explicit allowlist: the raw task object can carry the source URL
+        // (which may embed HTTP/FTP credentials) and other tracker metadata.
+        const safe = {
+          id: t.id,
+          type: t.type,
+          name: sanitizeDisplay(t.name, 200),
+          status: t.status,
+          io_priority: t.io_priority,
+          size: t.size,
+          queue_pos: t.queue_pos,
+          rx_bytes: t.rx_bytes,
+          tx_bytes: t.tx_bytes,
+          rx_rate: t.rx_rate,
+          tx_rate: t.tx_rate,
+          rx_pct: t.rx_pct,
+          tx_pct: t.tx_pct,
+          eta: t.eta,
+          error: t.error,
+          created_ts: t.created_ts,
+          download_dir: t.download_dir,
+        };
         return {
-          content: [
-            { type: "text", text: JSON.stringify(response.result, null, 2) },
-          ],
+          content: [{ type: "text", text: JSON.stringify(safe, null, 2) }],
         };
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -157,6 +222,25 @@ Args:
       inputSchema: {
         download_url: z
           .string()
+          .refine(
+            (value) => {
+              if (value.toLowerCase().startsWith("magnet:")) return true;
+              let parsed: URL;
+              try {
+                parsed = new URL(value);
+              } catch {
+                return false;
+              }
+              if (!["http:", "https:", "ftp:"].includes(parsed.protocol)) {
+                return false;
+              }
+              return !isPrivateHost(parsed.hostname);
+            },
+            {
+              message:
+                "URL invalide : seuls les schémas magnet:, http:, https: et ftp: sont acceptés, et les adresses privées / loopback / link-local sont refusées (risque de SSRF vers votre réseau local).",
+            }
+          )
           .describe("URL to download (HTTP, FTP, magnet)"),
         download_dir: z
           .string()
