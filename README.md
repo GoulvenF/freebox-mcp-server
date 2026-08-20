@@ -109,7 +109,9 @@ Ce fichier contient un **`app_token`** :
 
 - il est **de longue durée et n'expire jamais** — il reste valable tant que vous ne le révoquez pas explicitement ;
 - il est stocké **en clair** (le fichier est en `0o600`, mais son contenu n'est pas chiffré) ;
-- il équivaut, en pratique, à un **mot de passe maître** sur votre Freebox : quiconque le possède peut ouvrir une session et utiliser toutes les permissions accordées à l'application (réglages, explorateur de fichiers, téléchargements…).
+- il équivaut, en pratique, à un **mot de passe maître** sur votre Freebox : quiconque le possède peut ouvrir une session et utiliser toutes les permissions accordées à l'application (réglages, explorateur de fichiers, téléchargements…) — **à condition d'avoir accès au réseau de la Freebox**.
+
+**Portée du risque — réseau local uniquement par défaut.** L'API Freebox n'est pas exposée sur Internet par défaut : `remote_access` / `api_remote_access` sont désactivés, et leur activation exige désormais une confirmation explicite côté serveur (voir plus bas). Le token seul, vu depuis l'extérieur, ne donne donc accès à rien. En revanche, il suffit à quiconque possède **un accès réseau vers la Freebox** — présence physique sur le LAN, WiFi compromis, ou une connexion via le **VPN serveur de la Freebox** elle-même (`freebox_vpn_server_*`) qui place l'attaquant sur le réseau local — pour ouvrir une session complète sans autre vérification.
 
 ### Excluez-le de la portée des outils de lecture de fichiers de votre agent
 
