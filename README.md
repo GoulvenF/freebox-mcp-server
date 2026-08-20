@@ -44,16 +44,27 @@ Le serveur MCP vient équipé avec des dizaines d'outils ("tools") prêts à êt
 
 ## 🚀 Installation & Utilisation
 
-Assurez-vous d'avoir **Node.js 18+** installé sur votre machine.
+### Option A — Installation en un clic sur Claude Desktop (recommandé)
 
-### Installation via npm (Standard)
+Ce serveur est packagé en **Desktop Extension** (fichier `.mcpb`, le format officiel Anthropic). Aucune configuration JSON à écrire, aucun `npx` en ligne de commande.
+
+1. Téléchargez le dernier fichier `freebox-mcp-server-X.Y.Z.mcpb` depuis les [GitHub Releases](https://github.com/loopion/freebox-mcp-server/releases/latest).
+2. **Double-cliquez** sur le fichier téléchargé (ou glissez-le dans la fenêtre Claude Desktop, ou via *Réglages → Extensions → Paramètres avancés → Installer une extension…*).
+3. Claude Desktop affiche l'écran d'installation de l'extension : vérifiez les permissions, réglez éventuellement `FREEBOX_HOST` si votre Freebox n'est pas sur `mafreebox.freebox.fr`, puis validez.
+4. Demandez à Claude d'exécuter l'outil `freebox_register_app` et validez l'accès **physiquement via la flèche droite de l'écran LCD de votre Freebox**.
+
+Cette méthode ne fonctionne que sur **Claude Desktop** (macOS/Windows) — pas sur Claude Code ni sur le web.
+
+### Option B — via npm (Node.js requis, tous clients MCP)
+
+Assurez-vous d'avoir **Node.js 18+** installé sur votre machine.
 
 ```bash
 # Lance et télécharge le serveur automatiquement à l'aide de npx
 npx -y freebox-mcp-server
 ```
 
-### 1. Configuration sur Claude Desktop
+#### Configuration manuelle sur Claude Desktop
 
 Ouvrez le fichier de configuration de Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json` sur Mac ou `%APPDATA%\Claude\claude_desktop_config.json` sur Windows) et ajoutez le serveur :
 
@@ -70,13 +81,17 @@ Ouvrez le fichier de configuration de Claude Desktop (`~/Library/Application Sup
 
 *Note : Lors du premier lancement, vous devrez lui demander d'exécuter l'outil `freebox_register_app` et de valider l'accès **physiquement via la flèche droite de l'écran LCD de votre Freebox**.*
 
-### 2. Configuration sur Claude Code (CLI)
+#### Configuration sur Claude Code (CLI)
 
 Depuis votre terminal, ajoutez directement le serveur :
 
 ```bash
 claude mcp add freebox npx -y freebox-mcp-server
 ```
+
+### ChatGPT
+
+Ce serveur communique en **stdio** (processus local qui parle directement à votre Freebox sur le réseau domestique). ChatGPT ne supporte que des serveurs MCP **distants** (une URL HTTPS publique) — un serveur stdio local comme celui-ci ne peut pas y être ajouté tel quel. Il n'y a pas d'équivalent du lien/fichier « un clic » pour ChatGPT sur ce type de serveur ; il faudrait l'héberger en serveur distant, ce qui n'est pas l'objectif de ce projet (accès direct et local à votre Freebox, sans passer par un serveur tiers).
 
 ---
 
