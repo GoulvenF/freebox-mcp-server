@@ -21,10 +21,12 @@ import { registerNetshareTools } from "./tools/netshare.js";
 import { registerFtpTools } from "./tools/ftp.js";
 import { registerTftpTools } from "./tools/tftp.js";
 import { registerSfpTools } from "./tools/sfp.js";
+import { registerCallTools } from "./tools/call.js";
+import { registerContactTools } from "./tools/contact.js";
 
 const server = new McpServer({
   name: "freebox-mcp-server",
-  version: "1.1.0",
+  version: "1.2.0",
 });
 
 // Register all tool groups
@@ -46,6 +48,8 @@ registerNetshareTools(server);
 registerFtpTools(server);
 registerTftpTools(server);
 registerSfpTools(server);
+registerCallTools(server);
+registerContactTools(server);
 
 // Run with stdio transport
 async function main(): Promise<void> {

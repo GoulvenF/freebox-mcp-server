@@ -1,6 +1,6 @@
 {
   "name": "freebox-mcp-server",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Serveur MCP pour l'API Freebox OS - Contrôlez votre Freebox Server via Model Context Protocol. Créé par loopion.",
   "type": "module",
   "main": "dist/index.js",

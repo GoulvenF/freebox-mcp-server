@@ -35,6 +35,10 @@ Le serveur MCP vient équipé avec des dizaines d'outils ("tools") prêts à êt
   - Partage réseau Samba / AFP (`freebox_netshare_*`)
   - Serveurs FTP et TFTP (`freebox_ftp_*`, `freebox_tftp_*`)
   - Module SFP fibre — statut et configuration (`freebox_sfp_*`)
+- **📞 Téléphonie** *(depuis v1.2.0)* :
+  - Journal d'appels — liste, lecture, marquage lu, suppression (`freebox_call_log_*`)
+  - Messagerie vocale — liste, lecture, marquage lu, suppression (`freebox_voicemail_*`)
+  - Carnet de contacts — CRUD contacts, numéros, emails, adresses, urls (`freebox_contact_*`, `freebox_contacts_list`)
 
 ---
 

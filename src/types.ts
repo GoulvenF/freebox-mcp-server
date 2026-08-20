@@ -565,3 +565,89 @@ export interface SfpStatus {
   hardware_rev?: string;
   serial_number?: string;
 }
+
+// Call log (telephony)
+export type CallType = "missed" | "accepted" | "outgoing";
+
+export interface CallEntry {
+  id: number;
+  type: CallType;
+  datetime: number;
+  number: string;
+  name: string;
+  duration: number;
+  new: boolean;
+  contact_id: number;
+  line_id?: number;
+}
+
+export interface CallAccount {
+  phone_number: string;
+}
+
+// Voicemail
+export interface VoicemailEntry {
+  id: string;
+  country_code: string;
+  phone_number: string;
+  date: number;
+  read: boolean;
+  duration: number;
+}
+
+// Contacts
+export type ContactNumberType = "fixed" | "mobile" | "work" | "fax" | "other";
+export type ContactAddressType = "home" | "work" | "other";
+export type ContactUrlType = "profile" | "blog" | "site" | "other";
+export type ContactEmailType = "home" | "work" | "other";
+
+export interface ContactNumber {
+  id: number;
+  contact_id: number;
+  type: ContactNumberType;
+  number: string;
+  is_default: boolean;
+  is_own: boolean;
+}
+
+export interface ContactAddress {
+  id: number;
+  contact_id: number;
+  type: ContactAddressType;
+  number: string;
+  street: string;
+  street2: string;
+  city: string;
+  zipcode: string;
+  country: string;
+}
+
+export interface ContactUrl {
+  id: number;
+  contact_id: number;
+  type: ContactUrlType;
+  url: string;
+}
+
+export interface ContactEmail {
+  id: number;
+  contact_id: number;
+  type: ContactEmailType;
+  email: string;
+}
+
+export interface ContactEntry {
+  id: number;
+  display_name: string;
+  first_name: string;
+  last_name: string;
+  company: string;
+  photo_url: string;
+  last_update: number;
+  notes: string;
+  birthday?: string;
+  addresses?: ContactAddress[];
+  emails?: ContactEmail[];
+  numbers?: ContactNumber[];
+  urls?: ContactUrl[];
+}

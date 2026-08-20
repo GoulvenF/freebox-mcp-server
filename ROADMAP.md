@@ -17,14 +17,14 @@ Référence documentation: FreeboxOS Gateway API (build `be37b212f`).
   freeplug (CPL), VPN serveur/client, UPnP IGD/AV, partage réseau (Samba/AFP),
   FTP, TFTP, SFP *(v1.1.0, 51 nouveaux tools)*
 - System (info, reboot)
+- Téléphonie — journal d'appels (liste, consultation, marquage lu, suppression
+  unitaire/globale), compte téléphonique, messagerie vocale (liste, consultation,
+  marquage lu, suppression), carnet de contacts (CRUD contact + numéros, emails,
+  adresses, URLs) *(v1.2.0, 21 nouveaux tools)*
 - WiFi (config, access points, BSS, stations, toggle)
 - Wake-on-LAN
 
 ## À planifier — prochaines versions
-
-### Téléphonie
-- [ ] `call` — journal d'appels (list/get/update/delete, marquer lu, voicemail)
-- [ ] `contact` — carnet de contacts (CRUD contact/numéro/email/adresse/url)
 
 ### Domotique
 - [ ] `home` — Home Automation complet: nodes, adapters, endpoints, pairing, tileset
@@ -49,10 +49,9 @@ Référence documentation: FreeboxOS Gateway API (build `be37b212f`).
 
 ## Priorisation suggérée
 
-1. `contact` / `call` — carnet + journal d'appels
-2. `home` — domotique
-3. `storage` — disques / SMART
-4. `rrd` — métriques
+1. `home` — domotique
+2. `storage` — disques / SMART
+3. `rrd` — métriques
 
 Le reste (`player`, `pvr`, `camera`, `lcd`, `ledstrip`) dépend du matériel
 possédé (Player, caméra, Ultra) — à traiter à la demande.
