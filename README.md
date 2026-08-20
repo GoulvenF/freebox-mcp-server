@@ -26,6 +26,15 @@ Le serveur MCP vient équipé avec des dizaines d'outils ("tools") prêts à êt
 - **📁 Fichiers & Téléchargements :**
   - Gestion documentaire HTTP/FTP (`freebox_downloads_list`, `freebox_download_add`)
   - Pilote du Disque Dur (`freebox_fs_list`, `freebox_fs_info`, `freebox_fs_mkdir`, moves, renames)
+- **🛡️ Réseau avancé** *(depuis v1.1.0)* :
+  - Contrôle parental — profils et règles (`freebox_parental_*`)
+  - Freeplug / CPL — état du réseau courant porteur en ligne (`freebox_freeplug_*`)
+  - VPN serveur Freebox — configuration, utilisateurs, connexions actives (`freebox_vpn_server_*`)
+  - Clients VPN — OpenVPN / WireGuard / PPTP (`freebox_vpn_client_*`)
+  - UPnP IGD & UPnP AV — redirections et partage média (`freebox_upnp_*`)
+  - Partage réseau Samba / AFP (`freebox_netshare_*`)
+  - Serveurs FTP et TFTP (`freebox_ftp_*`, `freebox_tftp_*`)
+  - Module SFP fibre — statut et configuration (`freebox_sfp_*`)
 
 ---
 
@@ -130,6 +139,11 @@ Autres mesures en place :
 | `FREEBOX_ALLOW_INSECURE_HTTP` | `1` autorise le repli en HTTP en clair si HTTPS échoue. **Déconseillé.** |
 | `FREEBOX_FS_ALLOWED_ROOTS` | Racines autorisées pour les outils fichiers, séparées par des virgules. |
 | `FREEBOX_APP_TOKEN` / `FREEBOX_APP_ID` | Fournir le token par l'environnement au lieu du fichier `credentials.json`. |
+
+## Historique des versions & suivi
+
+Le détail de chaque version se trouve dans les [GitHub Releases](https://github.com/loopion/freebox-mcp-server/releases).
+Les domaines API Freebox pas encore couverts (téléphonie, domotique, stockage, multimédia, etc.) sont suivis dans [ROADMAP.md](ROADMAP.md).
 
 ## Licence
 MIT License.
