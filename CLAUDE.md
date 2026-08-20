@@ -21,8 +21,15 @@ Whenever a new version is released (tag pushed / GitHub Release created), always
 5. Create the git tag (`vX.Y.Z`, annotated, with a summary of what shipped) and push it.
 6. Create the GitHub Release (`gh release create`) with notes derived from the tag message —
    grouped by feature area and, when relevant, security fixes.
-7. Attach the `.mcpb` file to that release: `gh release upload vX.Y.Z freebox-mcp-server-X.Y.Z.mcpb`.
-   The README's "Option A" install instructions point at `releases/latest`, so every release
-   from now on must carry this asset or that install path breaks.
+7. Attach the `.mcpb` file to that release **twice**, so the README's stable download link
+   keeps working:
+   - `gh release upload vX.Y.Z freebox-mcp-server-X.Y.Z.mcpb` (versioned filename, for the
+     release page itself)
+   - `cp freebox-mcp-server-X.Y.Z.mcpb freebox-mcp-server-latest.mcpb && gh release upload
+     vX.Y.Z freebox-mcp-server-latest.mcpb --clobber` (stable filename — this is what the
+     README's "Add to Claude Desktop" button and permanent download link point at, via
+     `releases/latest/download/freebox-mcp-server-latest.mcpb`)
+   Every release from now on must carry the `-latest.mcpb` asset or the README's one-click
+   install link breaks.
 
 Do this proactively as part of finishing a release, without waiting to be asked each time.

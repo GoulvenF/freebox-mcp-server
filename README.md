@@ -6,6 +6,12 @@
 
 **Serveur MCP pour l'API Freebox OS - Contrôlez votre Freebox Server directement depuis les assistants IA compatibles MCP (Claude, Cursor, etc.). Créé par loopion.**
 
+<p align="center">
+  <a href="https://github.com/loopion/freebox-mcp-server/releases/latest/download/freebox-mcp-server-latest.mcpb">
+    <img src="https://img.shields.io/badge/Add%20to-Claude%20Desktop-D97757?style=for-the-badge" alt="Add to Claude Desktop" />
+  </a>
+</p>
+
 Ce serveur expose de manière native et unifiée les API de votre Freebox (Revolution, Mini 4K, Pop, Delta, Ultra) via le **Model Context Protocol (MCP)**, ouvrant la voie à une domotique pilotée par l'Intelligence Artificielle.
 
 ## Fonctionnalités Principales (Outils)
@@ -48,7 +54,7 @@ Le serveur MCP vient équipé avec des dizaines d'outils ("tools") prêts à êt
 
 Ce serveur est packagé en **Desktop Extension** (fichier `.mcpb`, le format officiel Anthropic). Aucune configuration JSON à écrire, aucun `npx` en ligne de commande.
 
-1. Téléchargez le dernier fichier `freebox-mcp-server-X.Y.Z.mcpb` depuis les [GitHub Releases](https://github.com/loopion/freebox-mcp-server/releases/latest).
+1. Cliquez sur le bouton ci-dessus, ou téléchargez directement la **[dernière version du fichier `.mcpb`](https://github.com/loopion/freebox-mcp-server/releases/latest/download/freebox-mcp-server-latest.mcpb)** (ce lien pointe toujours vers la dernière release, quelle que soit sa version).
 2. **Double-cliquez** sur le fichier téléchargé (ou glissez-le dans la fenêtre Claude Desktop, ou via *Réglages → Extensions → Paramètres avancés → Installer une extension…*).
 3. Claude Desktop affiche l'écran d'installation de l'extension : vérifiez les permissions, réglez éventuellement `FREEBOX_HOST` si votre Freebox n'est pas sur `mafreebox.freebox.fr`, puis validez.
 4. Demandez à Claude d'exécuter l'outil `freebox_register_app` et validez l'accès **physiquement via la flèche droite de l'écran LCD de votre Freebox**.
@@ -88,10 +94,6 @@ Depuis votre terminal, ajoutez directement le serveur :
 ```bash
 claude mcp add freebox npx -y freebox-mcp-server
 ```
-
-### ChatGPT
-
-Ce serveur communique en **stdio** (processus local qui parle directement à votre Freebox sur le réseau domestique). ChatGPT ne supporte que des serveurs MCP **distants** (une URL HTTPS publique) — un serveur stdio local comme celui-ci ne peut pas y être ajouté tel quel. Il n'y a pas d'équivalent du lien/fichier « un clic » pour ChatGPT sur ce type de serveur ; il faudrait l'héberger en serveur distant, ce qui n'est pas l'objectif de ce projet (accès direct et local à votre Freebox, sans passer par un serveur tiers).
 
 ---
 
