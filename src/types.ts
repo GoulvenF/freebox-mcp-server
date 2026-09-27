@@ -651,3 +651,38 @@ export interface ContactEntry {
   numbers?: ContactNumber[];
   urls?: ContactUrl[];
 }
+
+// ---- Player (unstable API, proxied by the server) ----
+
+export interface Player {
+  id: number;
+  device_name: string;
+  device_model?: string;
+  stb_type?: string;
+  mac?: string;
+  uid?: string;
+  reachable: boolean;
+  api_available: boolean;
+  api_version?: string;
+  last_time_reachable?: number;
+}
+
+export interface PlayerStatus {
+  power_state?: string;
+  player?: {
+    name?: string;
+    last_activity?: number;
+    capabilities?: Record<string, boolean>;
+  };
+  foreground_app?: {
+    package_id?: number;
+    package?: string;
+    cur_url?: string;
+    context?: Record<string, unknown>;
+  };
+}
+
+export interface PlayerVolume {
+  volume: number;
+  mute: boolean;
+}

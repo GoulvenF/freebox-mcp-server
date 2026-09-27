@@ -23,6 +23,7 @@ Référence documentation: FreeboxOS Gateway API (build `be37b212f`).
   adresses, URLs) *(v1.2.0, 21 nouveaux tools)*
 - WiFi (config, access points, BSS, stations, toggle)
 - Wake-on-LAN
+- Player — liste, état, volume/sourdine, contrôle média, ouverture de chaîne ou d'URL
 
 ## À planifier — prochaines versions
 
@@ -34,7 +35,6 @@ Référence documentation: FreeboxOS Gateway API (build `be37b212f`).
 - [ ] `storage` — disques (SMART, format), partitions (check/resize), RAID (create/repair/spares)
 
 ### Multimédia / TV *(dépend du matériel possédé)*
-- [ ] `player` — pilotage Freebox Player (volume, lecture média, status)
 - [ ] `pvr` — enregistrements programmés/terminés, quota, config
 - [ ] `airmedia` — récepteurs AirMedia, envoi de contenu
 - [ ] `camera` — caméras IP Freebox (list, config)
@@ -53,5 +53,5 @@ Référence documentation: FreeboxOS Gateway API (build `be37b212f`).
 2. `storage` — disques / SMART
 3. `rrd` — métriques
 
-Le reste (`player`, `pvr`, `camera`, `lcd`, `ledstrip`) dépend du matériel
+Le reste (`pvr`, `camera`, `lcd`, `ledstrip`) dépend du matériel
 possédé (Player, caméra, Ultra) — à traiter à la demande.
