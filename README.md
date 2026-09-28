@@ -58,6 +58,12 @@ Le serveur MCP vient équipé avec des dizaines d'outils ("tools") prêts à êt
   - Programmes à l'antenne à une heure donnée sur les principales chaînes (`freebox_tv_on_air`)
   - Fiche d'un programme : résumé, saison/épisode, casting (`freebox_tv_program`)
   - Nécessite le droit `tv` de l'application (Freebox OS > Gestion des accès > Applications). Heures affichées en heure française.
+- **⏺️ Enregistreur TV (PVR)** :
+  - État de l'enregistreur : espace libre, temps d'enregistrement restant, quota, marges (`freebox_pvr_status`)
+  - Enregistrements programmés et terminés (`freebox_pvr_programmed_list`, `freebox_pvr_finished_list`)
+  - Programmer un enregistrement, depuis un programme du guide ou par chaîne et horaires (`freebox_pvr_record`)
+  - Annuler un enregistrement programmé, supprimer un enregistrement (`freebox_pvr_programmed_delete`, `freebox_pvr_finished_delete`, confirmation requise)
+  - Nécessite le droit `pvr` de l'application (Freebox OS > Gestion des accès > Applications). API marquée *unstable* par Free.
 
 ---
 
@@ -160,6 +166,7 @@ Autres mesures en place :
   - `freebox_port_forwarding_add` → `JE-CONFIRME-OUVERTURE-PORT`
   - `freebox_connection_config_update` (activation de `remote_access` / `api_remote_access`) → `JE-CONFIRME-EXPOSER-MA-FREEBOX`
   - `freebox_dhcp_config_update` (changement de `dns`) → `JE-CONFIRME-LE-CHANGEMENT-DNS`
+  - `freebox_pvr_finished_delete` → `JE-CONFIRME-LA-SUPPRESSION-ENREGISTREMENT`
 - La clé WPA (`config.key`) n'est **jamais** renvoyée par `freebox_wifi_bss_list` : la réponse est construite à partir d'une liste blanche de champs non sensibles.
 - `freebox_download_add` refuse les URL pointant vers des adresses privées, loopback ou link-local (protection SSRF).
 - La découverte se fait **en HTTPS uniquement**. Le repli silencieux en HTTP a été supprimé ; il faut désormais opter explicitement pour `FREEBOX_ALLOW_INSECURE_HTTP=1`. Le champ `api_domain` renvoyé par la découverte est validé (`.fbxos.fr` / `.freebox.fr`).

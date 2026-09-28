@@ -23,6 +23,7 @@ import { registerTftpTools } from "./tools/tftp.js";
 import { registerSfpTools } from "./tools/sfp.js";
 import { registerCallTools } from "./tools/call.js";
 import { registerContactTools } from "./tools/contact.js";
+import { registerPvrTools } from "./tools/pvr.js";
 import { registerTvTools } from "./tools/tv.js";
 import { registerPlayerTools } from "./tools/player.js";
 
@@ -57,6 +58,7 @@ const TOOLSETS: Record<string, (server: McpServer) => void> = {
   contact: registerContactTools,
   player: registerPlayerTools,
   tv: registerTvTools,
+  pvr: registerPvrTools,
 };
 
 function selectedToolsets(): string[] {
