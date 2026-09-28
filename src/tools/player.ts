@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { freeboxClient } from "../services/freebox-client.js";
-import type { Player, PlayerStatus, PlayerVolume } from "../types.js";
+import type { Player, PlayerStatus, PlayerTrack, PlayerVolume } from "../types.js";
 import { sanitizeDisplay } from "../utils/sanitize.js";
 
 // The player API is proxied by the Freebox Server: /player/{id}/api/v{N}/...
@@ -29,6 +29,7 @@ const MEDIA_COMMANDS = [
   "shuffle_toggle",
   "record",
   "record_stop",
+  "start_over",
   "select_stream",
   "select_audio_track",
   "select_srt_track",
@@ -97,6 +98,24 @@ async function playerBase(
 /** Major version of the player's own API, as used in the request path. */
 function playerApiVersion(p: Player): string {
   return (p.api_version || "").split(".")[0] || DEFAULT_PLAYER_API_VERSION;
+}
+
+function formatDuration(ms: number): string {
+  const total = Math.floor(ms / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  return `${h ? `${h}:` : ""}${String(m).padStart(h ? 2 : 1, "0")}:${String(sec).padStart(2, "0")}`;
+}
+
+/** One line per track, with the uid that select_audio_track / select_srt_track take. */
+function formatTracks(label: string, tracks: PlayerTrack[] | undefined, current: number | undefined): string {
+  if (!tracks || tracks.length === 0) return "";
+  const items = tracks.map(
+    (t) =>
+      `${t.uid === current ? "▶ " : ""}${t.uid}: ${sanitizeDisplay(t.language, 10) || "?"}${t.type ? ` (${sanitizeDisplay(t.type, 30)})` : ""}`
+  );
+  return `- **${label}** (track_id): ${items.join(", ")}`;
 }
 
 function formatPlayer(p: Player): string {
@@ -196,7 +215,7 @@ Returns: id, name, model, reachability and player API version of each player.`,
     "freebox_player_status",
     {
       title: "Get Player Status",
-      description: `Get the state of a Freebox Player: power state, active media player and its capabilities (which freebox_player_media_control commands are available), foreground application.
+      description: `Get the state of a Freebox Player: power state, active media player, playback state and position, its capabilities (which freebox_player_media_control commands are available), audio and subtitle tracks (track_id for select_audio_track / select_srt_track), foreground application.
 Requires 'player' permission.
 
 Args:
@@ -229,11 +248,18 @@ Args:
         // Everything below comes from the player (app names, the URL being
         // shown): sanitize it, it is attacker-influenced content.
         const app = s.foreground_app;
+        const state = s.player?.state;
+        const media = app?.context?.player;
         const lines = [
           `## Player ${params.id} status`,
           `- **Power**: ${sanitizeDisplay(s.power_state) || "unknown"}`,
           s.player?.name ? `- **Active media player**: ${sanitizeDisplay(s.player.name)}` : "",
+          state?.playback_state
+            ? `- **Playback**: ${sanitizeDisplay(state.playback_state, 20)}${state.position_ms !== undefined && state.duration_ms ? ` (${formatDuration(state.position_ms)} / ${formatDuration(state.duration_ms)})` : ""}`
+            : "",
           `- **Capabilities**: ${sanitizeDisplay(caps, 500)}`,
+          formatTracks("Audio tracks", media?.audioList, media?.audioIndex),
+          formatTracks("Subtitles", media?.subtitleList, media?.subtitleIndex),
           app?.package
             ? `- **Foreground app**: ${sanitizeDisplay(app.package)}${app.cur_url ? ` (${sanitizeDisplay(app.cur_url, 200)})` : ""}`
             : "",

@@ -673,13 +673,29 @@ export interface PlayerStatus {
     name?: string;
     last_activity?: number;
     capabilities?: Record<string, boolean>;
+    state?: { playback_state?: string; position_ms?: number; duration_ms?: number };
   };
   foreground_app?: {
     package_id?: number;
     package?: string;
     cur_url?: string;
-    context?: Record<string, unknown>;
+    context?: {
+      player?: {
+        audioIndex?: number;
+        audioList?: PlayerTrack[];
+        subtitleIndex?: number;
+        subtitleList?: PlayerTrack[];
+      };
+      [key: string]: unknown;
+    };
   };
+}
+
+export interface PlayerTrack {
+  uid: number;
+  language?: string;
+  type?: string;
+  codec?: string;
 }
 
 export interface PlayerVolume {
