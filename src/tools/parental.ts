@@ -788,7 +788,7 @@ Args:
         };
 
         const response = await freeboxClient.apiRequest<NetworkControlRule>(
-          `network_controlr/${params.profile_id}/rules/`,
+          `network_control/${params.profile_id}/rules/`,
           "POST",
           body
         );
