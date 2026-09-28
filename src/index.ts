@@ -23,6 +23,7 @@ import { registerTftpTools } from "./tools/tftp.js";
 import { registerSfpTools } from "./tools/sfp.js";
 import { registerCallTools } from "./tools/call.js";
 import { registerContactTools } from "./tools/contact.js";
+import { registerPvrTools } from "./tools/pvr.js";
 
 const server = new McpServer({
   name: "freebox-mcp-server",
@@ -50,6 +51,7 @@ registerTftpTools(server);
 registerSfpTools(server);
 registerCallTools(server);
 registerContactTools(server);
+registerPvrTools(server);
 
 // Run with stdio transport
 async function main(): Promise<void> {

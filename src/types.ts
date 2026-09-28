@@ -651,3 +651,55 @@ export interface ContactEntry {
   numbers?: ContactNumber[];
   urls?: ContactUrl[];
 }
+
+// ---- PVR (TV recorder, unstable API) ----
+
+export interface PvrConfig {
+  margin_before: number;
+  margin_after: number;
+}
+
+export interface PvrQuota {
+  quota_exceeded: boolean;
+  needed_tresh: number;
+  cur_tresh: number;
+}
+
+export interface PvrMedia {
+  media: string;
+  free_bytes: number;
+  total_bytes: number;
+  record_time?: Record<string, Record<string, number>>;
+}
+
+interface PvrRecordBase {
+  id: number;
+  media?: string;
+  path?: string;
+  channel_uuid: string;
+  channel_name?: string;
+  channel_type?: string;
+  channel_quality?: string;
+  broadcast_type?: string;
+  name?: string;
+  subname?: string;
+  start: number;
+  end: number;
+  state?: string;
+  error?: string;
+  enabled?: boolean;
+  altered?: boolean;
+  has_record_gen?: boolean;
+  record_gen_id?: number;
+}
+
+export interface PvrProgrammedRecord extends PvrRecordBase {
+  conflict?: boolean;
+  overlap_list?: number[];
+}
+
+export interface PvrFinishedRecord extends PvrRecordBase {
+  filename?: string;
+  byte_size?: number;
+  secure?: boolean;
+}

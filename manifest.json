@@ -17,7 +17,7 @@
   "documentation": "https://github.com/loopion/freebox-mcp-server#readme",
   "support": "https://github.com/loopion/freebox-mcp-server/issues",
   "icon": "icon.png",
-  "keywords": ["freebox", "home-automation", "network", "router", "vpn", "wifi", "domotique"],
+  "keywords": ["freebox", "home-automation", "network", "router", "vpn", "wifi", "domotique", "tv", "pvr"],
   "license": "MIT",
   "server": {
     "type": "node",
