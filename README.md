@@ -45,6 +45,12 @@ Le serveur MCP vient équipé avec des dizaines d'outils ("tools") prêts à êt
   - Journal d'appels — liste, lecture, marquage lu, suppression (`freebox_call_log_*`)
   - Messagerie vocale — liste, lecture, marquage lu, suppression (`freebox_voicemail_*`)
   - Carnet de contacts — CRUD contacts, numéros, emails, adresses, urls (`freebox_contact_*`, `freebox_contacts_list`)
+- **📺 Télévision** :
+  - Chaînes du bouquet Freebox TV : numéro, nom, UUID, recherche par nom (`freebox_tv_channels`)
+  - Guide des programmes d'une chaîne sur une plage horaire, jusqu'à ~10 jours (`freebox_tv_epg`)
+  - Programmes à l'antenne à une heure donnée sur les principales chaînes (`freebox_tv_on_air`)
+  - Fiche d'un programme : résumé, saison/épisode, casting (`freebox_tv_program`)
+  - Nécessite le droit `tv` de l'application (Freebox OS > Gestion des accès > Applications). Heures affichées en heure française.
 
 ---
 
