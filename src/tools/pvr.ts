@@ -38,6 +38,15 @@ const dateTimeFormat = new Intl.DateTimeFormat("fr-FR", {
   hour: "2-digit",
   minute: "2-digit",
 });
+const dateTimeYearFormat = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: TIME_ZONE,
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+const yearFormat = new Intl.DateTimeFormat("fr-FR", { timeZone: TIME_ZONE, year: "numeric" });
 const timeFormat = new Intl.DateTimeFormat("fr-FR", {
   timeZone: TIME_ZONE,
   hour: "2-digit",
@@ -45,7 +54,10 @@ const timeFormat = new Intl.DateTimeFormat("fr-FR", {
 });
 
 function formatSpan(start: number, end: number): string {
-  return `${dateTimeFormat.format(new Date(start * 1000))}–${timeFormat.format(new Date(end * 1000))}`;
+  // Show the year only when it is not the current one: old recordings are common.
+  const date = new Date(start * 1000);
+  const thisYear = yearFormat.format(date) === yearFormat.format(new Date());
+  return `${(thisYear ? dateTimeFormat : dateTimeYearFormat).format(date)}–${timeFormat.format(new Date(end * 1000))}`;
 }
 
 function formatBytes(bytes: number): string {
@@ -134,9 +146,14 @@ Requires 'pvr' permission.`,
     "freebox_pvr_programmed_list",
     {
       title: "List Programmed Recordings",
-      description: `List the programmed (planned) TV recordings, with their state and conflicts.
-Requires 'pvr' permission.`,
-      inputSchema: {},
+      description: `List the programmed TV recordings, with their state and conflicts. By default only the upcoming and running ones: the box keeps past ones in this list too.
+Requires 'pvr' permission.
+
+Args:
+  - include_past (boolean, optional): also list past (finished, failed) programmed recordings (default false).`,
+      inputSchema: {
+        include_past: z.boolean().optional().describe("Also list past programmed recordings"),
+      },
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -144,13 +161,19 @@ Requires 'pvr' permission.`,
         openWorldHint: true,
       },
     },
-    async () => {
+    async (params: { include_past?: boolean }) => {
       try {
         const response = await freeboxClient.apiRequest<PvrProgrammedRecord[]>("pvr/programmed/");
         if (!response.success) return errorResult(`Error: ${response.msg || response.error_code}`);
-        const records = (response.result || []).sort((a, b) => a.start - b.start);
-        if (records.length === 0) return textResult("No programmed recording.");
-        return textResult(`## Programmed recordings (${records.length})\n\n${records.map(formatProgrammed).join("\n")}`);
+        const now = Math.floor(Date.now() / 1000);
+        const records = (response.result || [])
+          .filter((r) => params.include_past || r.end > now)
+          .sort((a, b) => a.start - b.start);
+        if (records.length === 0) {
+          return textResult(params.include_past ? "No programmed recording." : "No upcoming recording.");
+        }
+        const title = params.include_past ? "Programmed recordings" : "Upcoming recordings";
+        return textResult(`## ${title} (${records.length})\n\n${records.map(formatProgrammed).join("\n")}`);
       } catch (error: unknown) {
         return catchError(error);
       }
