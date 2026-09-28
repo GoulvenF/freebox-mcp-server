@@ -2,21 +2,43 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { freeboxClient } from "../services/freebox-client.js";
 import type { Player, PlayerStatus, PlayerVolume } from "../types.js";
+import { sanitizeDisplay } from "../utils/sanitize.js";
 
 // The player API is proxied by the Freebox Server: /player/{id}/api/v{N}/...
 // where N is the player's own API version (not the server's). Players that do
-// not report one (e.g. the Revolution player, fbx6hd) speak v6.
+// not report one (e.g. the Revolution player, fbx6hd, while switched off)
+// speak v6.
 const DEFAULT_PLAYER_API_VERSION = "6";
 
 const MEDIA_COMMANDS = [
+  "play",
+  "pause",
   "play_pause",
   "stop",
   "prev",
   "next",
+  "seek_forward",
+  "seek_backward",
+  "seek_to",
+  "repeat_all",
+  "repeat_one",
+  "repeat_off",
+  "repeat_toggle",
+  "shuffle_on",
+  "shuffle_off",
+  "shuffle_toggle",
+  "record",
+  "record_stop",
   "select_stream",
   "select_audio_track",
   "select_srt_track",
 ] as const;
+type MediaCommand = (typeof MEDIA_COMMANDS)[number];
+
+type MediaControlArgs =
+  | { type: "seek_position"; seek_position: number }
+  | { type: "track_id"; track_id: number }
+  | { type: "stream"; stream: { quality: string; source: string } };
 
 // tv: opens the TV app, http(s): opens the video player, the browser or YouTube
 // depending on the URL/type. Anything else is refused.
@@ -57,27 +79,79 @@ async function playerBase(
   if (!player) {
     return { error: `No player found with ID ${id}. Use freebox_player_list.` };
   }
-  if (!player.api_available) {
-    return { error: `Player ${id} (${player.device_model || player.device_name}) does not expose the player API.` };
-  }
+  // Reachability first: a switched-off player may still be listed with
+  // api_available, and "switch it on" is the actionable message.
   if (!player.reachable) {
     return {
       error: `Player ${id} is not reachable (switched off or in deep standby). Switch it on with its remote control, then retry.`,
     };
   }
-  const version =
-    (player.api_version || "").split(".")[0] || DEFAULT_PLAYER_API_VERSION;
-  return { base: `player/${id}/api/v${version}/` };
+  if (!player.api_available) {
+    return {
+      error: `Player ${id} (${sanitizeDisplay(player.device_model || player.device_name)}) does not expose the player API.`,
+    };
+  }
+  return { base: `player/${id}/api/v${playerApiVersion(player)}/` };
+}
+
+/** Major version of the player's own API, as used in the request path. */
+function playerApiVersion(p: Player): string {
+  return (p.api_version || "").split(".")[0] || DEFAULT_PLAYER_API_VERSION;
 }
 
 function formatPlayer(p: Player): string {
+  const model = p.device_model
+    ? ` (${sanitizeDisplay(p.device_model)}${p.stb_type ? `, ${sanitizeDisplay(p.stb_type)}` : ""})`
+    : "";
   return [
-    `- **${p.id}** — ${p.device_name}${p.device_model ? ` (${p.device_model}, ${p.stb_type})` : ""}`,
-    `  Reachable: ${p.reachable ? "🟢 yes" : "⚫ no"} | API: ${p.api_available ? `✅ v${p.api_version || DEFAULT_PLAYER_API_VERSION}` : "❌ unavailable"}`,
-    p.mac ? `  MAC: ${p.mac}` : "",
+    `- **${p.id}** — ${sanitizeDisplay(p.device_name)}${model}`,
+    `  Reachable: ${p.reachable ? "🟢 yes" : "⚫ no"} | API: ${p.api_available ? `✅ v${playerApiVersion(p)}` : "❌ unavailable"}`,
+    p.mac ? `  MAC: ${sanitizeDisplay(p.mac)}` : "",
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+/**
+ * Build the 'args' object a media command needs, or an error message.
+ * Only seek_to and the select_* commands take arguments.
+ */
+function mediaControlArgs(params: {
+  cmd: MediaCommand;
+  seek_position?: number;
+  track_id?: number;
+  stream_quality?: string;
+  stream_source?: string;
+}): MediaControlArgs | undefined | string {
+  const hasSeek = params.seek_position !== undefined;
+  const hasTrack = params.track_id !== undefined;
+  const hasStream =
+    params.stream_quality !== undefined || params.stream_source !== undefined;
+  switch (params.cmd) {
+    case "seek_to":
+      if (!hasSeek) return "seek_to needs 'seek_position'.";
+      if (hasTrack || hasStream) break;
+      return { type: "seek_position", seek_position: params.seek_position! };
+    case "select_audio_track":
+    case "select_srt_track":
+      if (!hasTrack) return `${params.cmd} needs 'track_id'.`;
+      if (hasSeek || hasStream) break;
+      return { type: "track_id", track_id: params.track_id! };
+    case "select_stream":
+      if (!hasStream) return "select_stream needs 'stream_quality' and/or 'stream_source'.";
+      if (hasSeek || hasTrack) break;
+      return {
+        type: "stream",
+        stream: {
+          quality: params.stream_quality ?? "",
+          source: params.stream_source ?? "",
+        },
+      };
+    default:
+      if (!hasSeek && !hasTrack && !hasStream) return undefined;
+      return `${params.cmd} takes no argument.`;
+  }
+  return `only the argument of ${params.cmd} is accepted.`;
 }
 
 export function registerPlayerTools(server: McpServer): void {
@@ -87,7 +161,7 @@ export function registerPlayerTools(server: McpServer): void {
     {
       title: "List Freebox Players",
       description: `List the Freebox Players (TV boxes) known by the Freebox Server.
-Requires the 'Contrôle du Freebox Player' permission, which must be granted by hand in Freebox OS (Paramètres > Gestion des accès > Applications).
+Requires 'player' permission ("Contrôle du Freebox Player", to be granted by hand in Freebox OS: Paramètres > Gestion des accès > Applications).
 
 Returns: id, name, model, reachability and player API version of each player.`,
       inputSchema: {},
@@ -123,6 +197,7 @@ Returns: id, name, model, reachability and player API version of each player.`,
     {
       title: "Get Player Status",
       description: `Get the state of a Freebox Player: power state, active media player and its capabilities (which freebox_player_media_control commands are available), foreground application.
+Requires 'player' permission.
 
 Args:
   - id (number): Player ID (from freebox_player_list).`,
@@ -151,13 +226,16 @@ Args:
               .map(([k]) => k)
               .join(", ") || "none"
           : "unknown";
+        // Everything below comes from the player (app names, the URL being
+        // shown): sanitize it, it is attacker-influenced content.
+        const app = s.foreground_app;
         const lines = [
           `## Player ${params.id} status`,
-          `- **Power**: ${s.power_state || "unknown"}`,
-          s.player?.name ? `- **Active media player**: ${s.player.name}` : "",
-          `- **Capabilities**: ${caps}`,
-          s.foreground_app?.package
-            ? `- **Foreground app**: ${s.foreground_app.package}${s.foreground_app.cur_url ? ` (${s.foreground_app.cur_url})` : ""}`
+          `- **Power**: ${sanitizeDisplay(s.power_state) || "unknown"}`,
+          s.player?.name ? `- **Active media player**: ${sanitizeDisplay(s.player.name)}` : "",
+          `- **Capabilities**: ${sanitizeDisplay(caps, 500)}`,
+          app?.package
+            ? `- **Foreground app**: ${sanitizeDisplay(app.package)}${app.cur_url ? ` (${sanitizeDisplay(app.cur_url, 200)})` : ""}`
             : "",
         ];
         return textResult(lines.filter(Boolean).join("\n"));
@@ -173,6 +251,7 @@ Args:
     {
       title: "Get Player Volume",
       description: `Get the playback volume (0-100) and mute state of a Freebox Player.
+Requires 'player' permission.
 
 Args:
   - id (number): Player ID (from freebox_player_list).`,
@@ -211,6 +290,7 @@ Args:
       title: "Set Player Volume",
       description: `Set the playback volume and/or mute state of a Freebox Player.
 Some players (e.g. the Revolution player with HDMI-CEC volume control) refuse absolute volume changes with 'notsupp'; mute usually still works.
+Requires 'player' permission.
 
 Args:
   - id (number): Player ID (from freebox_player_list).
@@ -281,13 +361,39 @@ Args:
       title: "Control Player Media",
       description: `Send a command to the active media player of a Freebox Player (live TV, video player...).
 Check which commands are available with freebox_player_status (capabilities).
+Requires 'player' permission.
 
 Args:
   - id (number): Player ID (from freebox_player_list).
-  - cmd (string): ${MEDIA_COMMANDS.join(" | ")}.`,
+  - cmd (string): ${MEDIA_COMMANDS.join(" | ")}.
+  - seek_position (number, seek_to only): position to seek to, in seconds.
+  - track_id (number, select_audio_track / select_srt_track only): track ID.
+  - stream_quality, stream_source (string, select_stream only): stream to select.`,
       inputSchema: {
         id: playerIdSchema,
         cmd: z.enum(MEDIA_COMMANDS).describe("Media command"),
+        seek_position: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe("seek_to: position in seconds"),
+        track_id: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe("select_audio_track / select_srt_track: track ID"),
+        stream_quality: z
+          .string()
+          .max(50)
+          .optional()
+          .describe("select_stream: stream quality (e.g. hd, sd, ld, auto)"),
+        stream_source: z
+          .string()
+          .max(50)
+          .optional()
+          .describe("select_stream: stream source"),
       },
       annotations: {
         readOnlyHint: false,
@@ -296,14 +402,23 @@ Args:
         openWorldHint: true,
       },
     },
-    async (params: { id: number; cmd: (typeof MEDIA_COMMANDS)[number] }) => {
+    async (params: {
+      id: number;
+      cmd: MediaCommand;
+      seek_position?: number;
+      track_id?: number;
+      stream_quality?: string;
+      stream_source?: string;
+    }) => {
       try {
+        const args = mediaControlArgs(params);
+        if (typeof args === "string") return errorResult(`Error: ${args}`);
         const target = await playerBase(params.id);
         if ("error" in target) return errorResult(target.error);
         const response = await freeboxClient.apiRequest(
           `${target.base}control/mediactrl/`,
           "POST",
-          { cmd: params.cmd }
+          args ? { cmd: params.cmd, args } : { cmd: params.cmd }
         );
         if (!response.success) {
           return errorResult(`Error: ${response.msg || response.error_code}`);
@@ -325,6 +440,8 @@ Give either 'channel' (opens live TV on that channel number) or 'url':
   - http(s) media URL (with 'type', e.g. video/x-matroska) opens the video player;
   - YouTube URL opens YouTube;
   - http(s) page with type text/html opens the web browser.
+URLs are opened by the player itself, so local network media URLs (e.g. a NAS) are allowed.
+Requires 'player' permission.
 
 Args:
   - id (number): Player ID (from freebox_player_list).
@@ -358,6 +475,9 @@ Args:
       try {
         if ((params.channel === undefined) === (params.url === undefined)) {
           return errorResult("Error: give exactly one of 'channel' or 'url'.");
+        }
+        if (params.channel !== undefined && params.type) {
+          return errorResult("Error: 'type' only applies to 'url'.");
         }
         const target = await playerBase(params.id);
         if ("error" in target) return errorResult(target.error);

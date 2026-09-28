@@ -102,7 +102,7 @@ Returns: JSON with app_token, track_id, and authorization status ("granted", "de
       description: `Open an authenticated session with the Freebox using stored credentials.
 Requires prior registration via freebox_register_app or environment variables (FREEBOX_APP_TOKEN, FREEBOX_APP_ID).
 
-Returns: JSON with session_token and app permissions (settings, contacts, calls, explorer, downloader, parental, pvr).`,
+Returns: JSON with session_token and app permissions (settings, contacts, calls, explorer, downloader, parental, pvr, player, tv, home, camera, vm, profile, wdo).`,
       inputSchema: {},
       annotations: {
         readOnlyHint: false,

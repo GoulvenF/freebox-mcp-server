@@ -13,6 +13,7 @@ Référence documentation: FreeboxOS Gateway API (build `be37b212f`).
 - Downloads
 - Filesystem
 - LAN hosts
+- Player — liste, état, volume/sourdine, contrôle média, ouverture de chaîne ou d'URL
 - Réseau avancé — port forwarding, switch, contrôle parental (profils, règles),
   freeplug (CPL), VPN serveur/client, UPnP IGD/AV, partage réseau (Samba/AFP),
   FTP, TFTP, SFP *(v1.1.0, 51 nouveaux tools)*
@@ -23,7 +24,6 @@ Référence documentation: FreeboxOS Gateway API (build `be37b212f`).
   adresses, URLs) *(v1.2.0, 21 nouveaux tools)*
 - WiFi (config, access points, BSS, stations, toggle)
 - Wake-on-LAN
-- Player — liste, état, volume/sourdine, contrôle média, ouverture de chaîne ou d'URL
 
 ## À planifier — prochaines versions
 

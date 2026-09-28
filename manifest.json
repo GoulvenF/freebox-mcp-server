@@ -3,8 +3,8 @@
   "name": "freebox-mcp-server",
   "display_name": "Freebox MCP Server",
   "version": "1.2.0",
-  "description": "Contrôlez votre Freebox Server (Revolution, Mini 4K, Pop, Delta, Ultra) directement depuis Claude : réseau, WiFi, DHCP, fichiers, téléchargements, VPN, contrôle parental, journal d'appels, contacts, et plus.",
-  "long_description": "Serveur MCP natif pour l'API Freebox OS. Expose plus de 110 outils couvrant l'authentification, le système, le réseau (WiFi, LAN, DHCP, redirections de port), les fichiers et téléchargements, le réseau avancé (contrôle parental, VPN, UPnP, partage réseau, FTP/TFTP, SFP) et la téléphonie (journal d'appels, messagerie vocale, contacts).\n\nAprès installation, exécutez l'outil freebox_register_app puis validez physiquement l'accès sur l'écran LCD de votre Freebox.\n\nCe serveur communique en HTTPS avec votre Freebox sur le réseau local uniquement. Consultez le README du projet pour l'avertissement de sécurité complet sur le fichier de token stocké localement.",
+  "description": "Contrôlez votre Freebox Server (Revolution, Mini 4K, Pop, Delta, Ultra) directement depuis Claude : réseau, WiFi, DHCP, fichiers, téléchargements, VPN, contrôle parental, journal d'appels, contacts, Freebox Player, et plus.",
+  "long_description": "Serveur MCP natif pour l'API Freebox OS. Expose plus de 110 outils couvrant l'authentification, le système, le réseau (WiFi, LAN, DHCP, redirections de port), les fichiers et téléchargements, le réseau avancé (contrôle parental, VPN, UPnP, partage réseau, FTP/TFTP, SFP) la téléphonie (journal d'appels, messagerie vocale, contacts) et le pilotage du Freebox Player (état, volume, lecture, ouverture de chaîne ou d'URL).\n\nAprès installation, exécutez l'outil freebox_register_app puis validez physiquement l'accès sur l'écran LCD de votre Freebox.\n\nCe serveur communique en HTTPS avec votre Freebox sur le réseau local uniquement. Consultez le README du projet pour l'avertissement de sécurité complet sur le fichier de token stocké localement.",
   "author": {
     "name": "loopion",
     "url": "https://github.com/loopion"
@@ -17,7 +17,7 @@
   "documentation": "https://github.com/loopion/freebox-mcp-server#readme",
   "support": "https://github.com/loopion/freebox-mcp-server/issues",
   "icon": "icon.png",
-  "keywords": ["freebox", "home-automation", "network", "router", "vpn", "wifi", "domotique"],
+  "keywords": ["freebox", "home-automation", "network", "router", "vpn", "wifi", "domotique", "tv", "player"],
   "license": "MIT",
   "server": {
     "type": "node",
