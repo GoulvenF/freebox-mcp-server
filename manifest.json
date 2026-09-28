@@ -28,7 +28,8 @@
       "env": {
         "FREEBOX_HOST": "${user_config.freebox_host}",
         "FREEBOX_ALLOW_INSECURE_HTTP": "${user_config.allow_insecure_http}",
-        "FREEBOX_FS_ALLOWED_ROOTS": "${user_config.fs_allowed_roots}"
+        "FREEBOX_FS_ALLOWED_ROOTS": "${user_config.fs_allowed_roots}",
+        "FREEBOX_TOOLSETS": "${user_config.toolsets}"
       }
     }
   },
@@ -51,6 +52,13 @@
       "type": "string",
       "title": "Racines de fichiers autorisées",
       "description": "Liste de chemins Freebox séparés par des virgules, pour confiner les outils de fichiers (ex: /Disque dur/). Laisser vide pour aucune restriction.",
+      "default": "",
+      "required": false
+    },
+    "toolsets": {
+      "type": "string",
+      "title": "Groupes d'outils exposés",
+      "description": "Liste de groupes séparés par des virgules (ex: call,contact) pour n'exposer qu'une partie des outils. Laisser vide pour tous les exposer.",
       "default": "",
       "required": false
     }

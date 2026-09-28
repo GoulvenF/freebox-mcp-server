@@ -29,27 +29,54 @@ const server = new McpServer({
   version: "1.2.0",
 });
 
-// Register all tool groups
-registerAuthTools(server);
-registerSystemTools(server);
-registerConnectionTools(server);
-registerWifiTools(server);
-registerLanTools(server);
-registerDhcpTools(server);
-registerDownloadTools(server);
-registerFilesystemTools(server);
-registerNetworkTools(server);
-registerFreeplugTools(server);
-registerParentalTools(server);
-registerVpnServerTools(server);
-registerVpnClientTools(server);
-registerUpnpTools(server);
-registerNetshareTools(server);
-registerFtpTools(server);
-registerTftpTools(server);
-registerSfpTools(server);
-registerCallTools(server);
-registerContactTools(server);
+// Tool groups, by toolset name. A deployment can expose only some of them with
+// --toolsets=a,b (or FREEBOX_TOOLSETS=a,b), e.g. to give an assistant the TV
+// tools without the network ones. Default: all of them.
+const TOOLSETS: Record<string, (server: McpServer) => void> = {
+  auth: registerAuthTools,
+  system: registerSystemTools,
+  connection: registerConnectionTools,
+  wifi: registerWifiTools,
+  lan: registerLanTools,
+  dhcp: registerDhcpTools,
+  downloads: registerDownloadTools,
+  filesystem: registerFilesystemTools,
+  network: registerNetworkTools,
+  freeplug: registerFreeplugTools,
+  parental: registerParentalTools,
+  "vpn-server": registerVpnServerTools,
+  "vpn-client": registerVpnClientTools,
+  upnp: registerUpnpTools,
+  netshare: registerNetshareTools,
+  ftp: registerFtpTools,
+  tftp: registerTftpTools,
+  sfp: registerSfpTools,
+  call: registerCallTools,
+  contact: registerContactTools,
+};
+
+function selectedToolsets(): string[] {
+  const arg = process.argv
+    .slice(2)
+    .find((a) => a.startsWith("--toolsets="))
+    ?.slice("--toolsets=".length);
+  const value = (arg ?? process.env.FREEBOX_TOOLSETS ?? "").trim();
+  if (value === "" || value === "all") return Object.keys(TOOLSETS);
+  const names = value.split(",").map((n) => n.trim()).filter(Boolean);
+  const unknown = names.filter((n) => !(n in TOOLSETS));
+  if (unknown.length > 0) {
+    // Fail loudly: silently exposing fewer (or more) tools than intended is worse.
+    console.error(
+      `Unknown toolset(s): ${unknown.join(", ")}. Available: ${Object.keys(TOOLSETS).join(", ")}`
+    );
+    process.exit(1);
+  }
+  return names;
+}
+
+for (const name of selectedToolsets()) {
+  TOOLSETS[name](server);
+}
 
 // Run with stdio transport
 async function main(): Promise<void> {
