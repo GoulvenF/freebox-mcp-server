@@ -45,6 +45,13 @@ Le serveur MCP vient équipé avec des dizaines d'outils ("tools") prêts à êt
   - Journal d'appels — liste, lecture, marquage lu, suppression (`freebox_call_log_*`)
   - Messagerie vocale — liste, lecture, marquage lu, suppression (`freebox_voicemail_*`)
   - Carnet de contacts — CRUD contacts, numéros, emails, adresses, urls (`freebox_contact_*`, `freebox_contacts_list`)
+- **📺 Freebox Player** :
+  - Liste et état des Players, capacités du lecteur actif (`freebox_player_list`, `freebox_player_status`)
+  - Volume et sourdine (`freebox_player_volume_get`, `freebox_player_volume_set`)
+  - Lecture/pause, stop, précédent/suivant, avance/retour, choix des pistes audio/sous-titres, enregistrement (`freebox_player_media_control`)
+  - Ouvrir une chaîne TV ou une URL (vidéo, YouTube, page web) (`freebox_player_open`)
+  - Nécessite le droit « Contrôle du Freebox Player » (`player`), à cocher à la main dans Freebox OS (Gestion des accès > Applications). API marquée *unstable* par Free.
+  - Le Player doit être allumé : l'API ne permet pas de le sortir de veille.
 
 ---
 
