@@ -686,3 +686,40 @@ export interface PlayerVolume {
   volume: number;
   mute: boolean;
 }
+
+// ---- TV (channels, bouquets, EPG) ----
+
+export interface TvChannel {
+  uuid: string;
+  name: string;
+  short_name?: string;
+  available?: boolean;
+  has_service?: boolean;
+  has_abo?: boolean;
+  logo_url?: string;
+}
+
+export interface TvBouquetChannel {
+  uuid: string;
+  number: number;
+  sub_number: number;
+  available: boolean;
+  pub_service?: boolean;
+}
+
+export interface TvProgram {
+  id: string;
+  date: number;
+  duration: number;
+  title: string;
+  sub_title?: string;
+  category?: number;
+  category_name?: string;
+  desc?: string;
+  short_desc?: string;
+  season_number?: number;
+  episode_number?: number;
+  year?: number;
+  channel_id?: string;
+  cast?: { first_name?: string; last_name?: string; job?: string; role?: string }[];
+}

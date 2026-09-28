@@ -52,6 +52,12 @@ Le serveur MCP vient équipé avec des dizaines d'outils ("tools") prêts à êt
   - Ouvrir une chaîne TV ou une URL (vidéo, YouTube, page web) (`freebox_player_open`)
   - Nécessite le droit « Contrôle du Freebox Player » (`player`), à cocher à la main dans Freebox OS (Gestion des accès > Applications). API marquée *unstable* par Free.
   - Le Player doit être allumé : l'API ne permet pas de le sortir de veille.
+- **📺 Télévision** :
+  - Chaînes du bouquet Freebox TV : numéro, nom, UUID, recherche par nom (`freebox_tv_channels`)
+  - Guide des programmes d'une chaîne sur une plage horaire, jusqu'à ~10 jours (`freebox_tv_epg`)
+  - Programmes à l'antenne à une heure donnée sur les principales chaînes (`freebox_tv_on_air`)
+  - Fiche d'un programme : résumé, saison/épisode, casting (`freebox_tv_program`)
+  - Nécessite le droit `tv` de l'application (Freebox OS > Gestion des accès > Applications). Heures affichées en heure française.
 
 ---
 

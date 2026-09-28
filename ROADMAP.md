@@ -18,6 +18,7 @@ Référence documentation: FreeboxOS Gateway API (build `be37b212f`).
   freeplug (CPL), VPN serveur/client, UPnP IGD/AV, partage réseau (Samba/AFP),
   FTP, TFTP, SFP *(v1.1.0, 51 nouveaux tools)*
 - System (info, reboot)
+- TV — chaînes du bouquet, guide des programmes (EPG), programmes à l'antenne, fiche programme
 - Téléphonie — journal d'appels (liste, consultation, marquage lu, suppression
   unitaire/globale), compte téléphonique, messagerie vocale (liste, consultation,
   marquage lu, suppression), carnet de contacts (CRUD contact + numéros, emails,
