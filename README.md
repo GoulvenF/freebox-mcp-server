@@ -183,7 +183,7 @@ Autres mesures en place :
 | `FREEBOX_ALLOW_INSECURE_HTTP` | `1` autorise le repli en HTTP en clair si HTTPS échoue. **Déconseillé.** |
 | `FREEBOX_FS_ALLOWED_ROOTS` | Racines autorisées pour les outils fichiers, séparées par des virgules. |
 | `FREEBOX_APP_TOKEN` / `FREEBOX_APP_ID` | Fournir le token par l'environnement au lieu du fichier `credentials.json`. |
-| `FREEBOX_TOOLSETS` | Groupes d'outils à exposer, séparés par des virgules (défaut : tous). L'argument `--toolsets=` a le même effet et prime sur la variable. Groupes : `auth`, `system`, `connection`, `wifi`, `lan`, `dhcp`, `downloads`, `filesystem`, `network`, `freeplug`, `parental`, `vpn-server`, `vpn-client`, `upnp`, `netshare`, `ftp`, `tftp`, `sfp`, `call`, `contact`. Un nom inconnu arrête le serveur. |
+| `FREEBOX_TOOLSETS` | Groupes d'outils à exposer, séparés par des virgules (défaut : tous). L'argument `--toolsets=` a le même effet et prime sur la variable. Groupes : `auth`, `system`, `connection`, `wifi`, `lan`, `dhcp`, `downloads`, `filesystem`, `network`, `freeplug`, `parental`, `vpn-server`, `vpn-client`, `upnp`, `netshare`, `ftp`, `tftp`, `sfp`, `call`, `contact`, `player`, `tv`, `pvr`. Un nom inconnu arrête le serveur. |
 
 ## Historique des versions & suivi
 
