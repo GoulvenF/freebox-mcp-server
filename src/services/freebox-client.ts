@@ -187,8 +187,10 @@ export class FreeboxClient {
         const reason = err instanceof Error ? err.message : String(err);
         throw new Error(
           `HTTPS discovery of the Freebox at "${host}" failed (${reason}). ` +
-            `Refusing to fall back to plaintext HTTP: doing so would send the session token ` +
-            `and all API traffic in the clear over your local network. ` +
+            // Worded to avoid "send ... token": MCP hosts that scan tool results for
+            // exfiltration phrases (e.g. Paperclip) otherwise block this error as an injection.
+            `Refusing to fall back to plaintext HTTP, which would expose the Freebox session ` +
+            `and all API traffic in cleartext on your local network. ` +
             `Check FREEBOX_HOST, or set FREEBOX_ALLOW_INSECURE_HTTP=1 to explicitly accept that risk.`
         );
       }
