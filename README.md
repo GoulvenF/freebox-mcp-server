@@ -152,6 +152,7 @@ Autres mesures en place :
 - La découverte se fait **en HTTPS uniquement**. Le repli silencieux en HTTP a été supprimé ; il faut désormais opter explicitement pour `FREEBOX_ALLOW_INSECURE_HTTP=1`. Le champ `api_domain` renvoyé par la découverte est validé (`.fbxos.fr` / `.freebox.fr`).
 - Les corps de réponse bruts de l'API ne sont plus renvoyés dans les messages d'erreur MCP : ils sont écrits sur `stderr` pour le débogage local uniquement.
 - Optionnel : `FREEBOX_FS_ALLOWED_ROOTS` (liste de chemins séparés par des virgules) confine les outils `freebox_fs_*` à ces racines. Les chemins contenant `..` sont refusés dans tous les cas.
+- Optionnel : `--toolsets=…` ou `FREEBOX_TOOLSETS` n'expose que certains groupes d'outils (par exemple `call,contact` pour un assistant téléphonie). Les droits de l'application dans Freebox OS restent le vrai contrôle pour les écritures, mais la lecture des réglages (hôtes LAN, WiFi, baux DHCP…) est toujours autorisée par la Freebox : ne pas enregistrer un outil est le seul moyen d'en priver un assistant.
 - L'authentification utilise la méthode officielle HMAC-SHA1 Challenge. Aucun mot de passe maître n'est stocké.
 
 ### Variables d'environnement
@@ -162,6 +163,7 @@ Autres mesures en place :
 | `FREEBOX_ALLOW_INSECURE_HTTP` | `1` autorise le repli en HTTP en clair si HTTPS échoue. **Déconseillé.** |
 | `FREEBOX_FS_ALLOWED_ROOTS` | Racines autorisées pour les outils fichiers, séparées par des virgules. |
 | `FREEBOX_APP_TOKEN` / `FREEBOX_APP_ID` | Fournir le token par l'environnement au lieu du fichier `credentials.json`. |
+| `FREEBOX_TOOLSETS` | Groupes d'outils à exposer, séparés par des virgules (défaut : tous). L'argument `--toolsets=` a le même effet et prime sur la variable. Groupes : `auth`, `system`, `connection`, `wifi`, `lan`, `dhcp`, `downloads`, `filesystem`, `network`, `freeplug`, `parental`, `vpn-server`, `vpn-client`, `upnp`, `netshare`, `ftp`, `tftp`, `sfp`, `call`, `contact`. Un nom inconnu arrête le serveur. |
 
 ## Historique des versions & suivi
 
